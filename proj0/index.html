@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proj0 — Becoming Friends with Your Camera</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="wrap">
+    <nav class="crumbs"><a href="../index.html">&larr; Portfolio</a></nav>
+
+    <header class="page-header">
+      <div class="eyebrow">CS180 · Programming Project #0</div>
+      <h1>Becoming Friends with Your Camera</h1>
+      <div class="meta">Exploring perspective, focal length/zoom, and the center of projection.</div>
+    </header>
+
+    <!-- PART 1 -->
+    <section class="part" id="part1">
+      <h2><span class="part-label">Part 1</span>Selfie: The Wrong Way vs. The Right Way</h2>
+      <p>
+        First, a close-up selfie taken just a foot or two from the face. Then, a second
+        shot taken from several feet back and zoomed in so the face appears the same size.
+      </p>
+      <div class="figure-row">
+        <figure>
+          <img src="media/selfie-close.jpeg" alt="Close-up selfie">
+          <figcaption>Close-up, no zoom (the "wrong" way)</figcaption>
+        </figure>
+        <figure>
+          <img src="media/selfie-far.jpeg" alt="Stepped-back, zoomed-in selfie">
+          <figcaption>Stepped back + zoomed in (the "right" way)</figcaption>
+        </figure>
+      </div>
+      <div class="discuss">
+        <strong>Why does this happen?</strong>
+        A camera close to a face has to cover a wide field of view over a very short
+        distance, so different parts of the face sit at very different distances from
+        the lens. Perspective projection exaggerates whatever is closer, so the nose,
+        chin, and other near features balloon in size relative to the ears and background.
+        Stepping back and zooming in narrows the field of view and keeps the whole face at
+        roughly the same distance from the camera, so the relative sizes of facial
+        features stay proportional — closer to how the face looks in real life (and to
+        how a longer lens compresses depth).
+      </div>
+    </section>
+
+    <!-- PART 2 -->
+    <section class="part" id="part2">
+      <h2><span class="part-label">Part 2</span>Architectural Perspective Compression</h2>
+      <p>
+        The same idea, reversed and applied to a building facade: zoomed in from far
+        away, versus up close without zoom, matching the building's size in frame.
+      </p>
+      <div class="figure-row">
+        <figure>
+          <img src="media/building-zoomed.jpeg" alt="Building photographed from far away, zoomed in">
+          <figcaption>Far away, zoomed in (compressed)</figcaption>
+        </figure>
+        <figure>
+          <img src="media/building-close.jpeg" alt="Building photographed up close, no zoom">
+          <figcaption>Walked up close, no zoom</figcaption>
+        </figure>
+      </div>
+      <div class="discuss">
+        <strong>Why does this happen?</strong>
+        Shooting from far away with a long focal length narrows the field of view so
+        that every part of the facade is at nearly the same distance from the camera,
+        flattening the depth between the front of the building and whatever is behind
+        it — the classic "compressed" telephoto look. Walking right up to the building
+        and using a wide field of view puts the near edges of the facade much closer to
+        the camera than the far edges, so perspective exaggerates that depth difference,
+        making the building look like it recedes and its proportions distort more toward
+        the edges of the frame.
+      </div>
+    </section>
+
+    <!-- PART 3 -->
+    <section class="part" id="part3">
+      <h2><span class="part-label">Part 3</span>The Dolly Zoom</h2>
+      <p>
+        Moving the camera backward while zooming in, keeping the subject the same size
+        in frame, combined into an animated GIF from a sequence of stills.
+      </p>
+      <div class="figure-row">
+        <figure>
+          <img src="media/dolly-zoom.gif" alt="Dolly zoom animation">
+          <figcaption>Dolly zoom sequence (animated GIF)</figcaption>
+        </figure>
+      </div>
+      <div class="discuss">
+        <strong>Why does this happen?</strong>
+        The subject stays the same size because moving back is compensated by zooming
+        in, but zooming in also narrows the field of view. Everything that isn't at the
+        subject's exact distance — the background in particular — is affected only by
+        the change in field of view, not by the change in camera distance the way the
+        subject is. The result is that the background appears to stretch or compress
+        (rushing toward or away from the viewer) while the subject itself stays locked
+        in place and size, producing the unsettling "Vertigo" effect.
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      &copy; 2026 Beni Michel — CS180 Project 0
+    </footer>
+  </div>
+</body>
+</html>
