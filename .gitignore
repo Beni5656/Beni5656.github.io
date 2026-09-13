@@ -1,0 +1,15 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Course-provided source plates: ~762 MB, several files near GitHub's 100 MB limit.
+# Download them from the class data.zip rather than committing them.
+proj1/CS180_fa2026_proj1_data/
+
+# Full-resolution pipeline output (~13 MB). The web-sized copies the site actually
+# displays live in proj1/media/results/ and are committed.
+proj1/results/
+
+# Scratch
+run_log.txt

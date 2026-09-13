@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proj1 — Colorizing the Prokudin-Gorskii Photo Collection</title>
+  <link rel="stylesheet" href="../style.css">
+  <style>
+    /* proj1-only additions, kept here so proj0 is untouched */
+    table.scores {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin: 20px 0 8px;
+    }
+    table.scores th,
+    table.scores td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: right;
+    }
+    table.scores th:first-child,
+    table.scores td:first-child {
+      text-align: left;
+      font-weight: 600;
+    }
+    table.scores thead th {
+      border-bottom: 2px solid var(--border);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    table.scores tbody tr:hover { background: #f7f9fd; }
+    table.scores td.num { font-variant-numeric: tabular-nums; }
+    .table-scroll { overflow-x: auto; }
+    .note {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    pre.code {
+      background: #f5f5f7;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin: 18px 0;
+    }
+    pre.code .cm { color: var(--muted); }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 18px;
+      margin: 20px 0 4px;
+    }
+    .gallery figure { margin: 0; }
+    .gallery figcaption { text-align: left; }
+    .gallery .off {
+      display: block;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      font-size: 0.8rem;
+    }
+    .ba { margin: 22px 0; }
+    .ba h4 {
+      margin: 0 0 10px;
+      font-size: 0.95rem;
+    }
+    .ba .figure-row { margin: 0; }
+    .tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-right: 6px;
+      vertical-align: 1px;
+    }
+    .tag.bad { background: #fdecec; color: #b00020; }
+    .tag.good { background: #e8f5ec; color: #1b6b36; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="crumbs"><a href="../index.html">&larr; Portfolio</a></nav>
+
+    <header class="page-header">
+      <div class="eyebrow">CS180 · Programming Project #1</div>
+      <h1>Images of the Russian Empire</h1>
+      <div class="meta">
+        Colorizing the Prokudin-Gorskii photo collection: splitting each glass plate into
+        its three exposures, aligning them, and stacking them back into colour.
+      </div>
+    </header>
+
+    <!-- ================= OVERVIEW ================= -->
+    <section class="part" id="overview">
+      <h2><span class="part-label">Overview</span>What we are starting from</h2>
+      <p>
+        Around 1907 Sergei Mikhailovich Prokudin-Gorskii photographed the Russian Empire in
+        colour, decades before colour printing was practical. His method was to record the
+        same scene three times in quick succession through a blue, a green, and a red filter,
+        onto a single tall glass plate. The Library of Congress digitised those plates, and
+        each scan is one tall greyscale image holding three stacked frames, in the order
+        <strong>B, G, R</strong> from top to bottom.
+      </p>
+      <p>
+        The job is to cut the plate into thirds and slide the green and red frames back on
+        top of the blue one until they line up, which turns three greyscale exposures into a
+        single colour photograph. Sliding is all we are allowed: a plain
+        <em>(x, y)</em> translation, no rotation and no scaling.
+      </p>
+      <p>
+        That sounds easy and mostly is, but two things make it interesting. The offsets are
+        large — on the full-resolution plates the red frame can sit <strong>177 pixels</strong>
+        away from the blue one — so a naive search is far too slow. And the three frames are
+        not photographs of the same thing: they record different parts of the spectrum, so a
+        bright red coat is bright in one frame and nearly black in another. Matching raw
+        brightness between them is unreliable.
+      </p>
+    </section>
+
+    <!-- ================= METRIC ================= -->
+    <section class="part" id="metric">
+      <h2><span class="part-label">Part 1</span>Scoring a candidate alignment</h2>
+      <p>
+        To pick an offset we need a number that says how well two frames line up. I score with
+        the <strong>L2 norm</strong>, the Euclidean distance between the two overlapping
+        patches:
+      </p>
+      <pre class="code">def euclidean_distance(im1, im2):
+    return np.sqrt(np.sum(np.sum((im1 - im2) ** 2)))</pre>
+      <p>
+        Lower is better, and a perfect match would be zero. The other standard choice is
+        normalized cross-correlation, which is the dot product of the two patches after each
+        has been mean-subtracted and scaled to unit length. NCC is the better pick when the
+        two images differ by a constant brightness or gain, because normalising removes
+        exactly that difference. I did not need it, for the reason in the next paragraph.
+      </p>
+      <p>
+        Rather than feeding raw pixels to the L2 norm, I run each frame through a
+        <strong>Sobel filter</strong> first and compare gradient magnitudes. This is the part
+        that makes the brightness problem go away. A Sobel filter responds to <em>edges</em> —
+        where the brightness changes — and it does not care how bright the region is on either
+        side. The boundary of a roof is an edge in all three exposures even when the roof
+        itself is light in one and dark in another. Aligning on edges rather than on
+        brightness is why this works on the Emir of Bukhara, the image the project warns about,
+        without any special handling.
+      </p>
+      <div class="discuss">
+        <strong>Why the score is computed on a cropped window</strong>
+        Every candidate offset is produced with <code>np.roll</code>, which wraps pixels
+        around the edge instead of dropping them. The strip that wraps around is nonsense —
+        it is content from the opposite side of the frame — so before scoring I cut a margin
+        off all four sides and compare only the interior. This margin turns out to matter for
+        a second and much more important reason, which is <a href="#borders">Part 4</a>.
+      </div>
+    </section>
+
+    <!-- ================= SINGLE SCALE ================= -->
+    <section class="part" id="singlescale">
+      <h2><span class="part-label">Part 2</span>Single-scale alignment</h2>
+      <p>
+        The simplest working version is an exhaustive search. Take every offset in a window of
+        <em>[-15, 15]</em> pixels in both directions, score each one, and keep the best. That
+        is 31 &times; 31 = 961 candidates per channel, and it is what <code>align()</code>
+        does:
+      </p>
+      <pre class="code">def align(channel1, channel2, num1, num2, margin):
+    grad1 = sobel(channel1)
+    grad2 = sobel(channel2)
+    cropped2 = grad2[margin : -margin, margin : -margin]
+
+    for i in dx:                                   <span class="cm"># horizontal offsets</span>
+        for j in dy:                               <span class="cm"># vertical offsets</span>
+            row_shift = np.roll(grad1, j, axis=0)
+            col_shift = np.roll(row_shift, i, axis=1)
+            cropped1  = col_shift[margin : -margin, margin : -margin]
+            score = euclidean_distance(cropped1, cropped2)
+            <span class="cm"># keep the offset with the lowest score</span></pre>
+      <p>
+        On the three low-resolution JPEGs this is enough on its own, because their offsets are
+        all comfortably inside the &plusmn;15 window:
+      </p>
+      <div class="table-scroll">
+        <table class="scores">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Single-scale G (x, y)</th>
+              <th>Single-scale R (x, y)</th>
+              <th>Time</th>
+              <th>Pyramid result</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>cathedral.jpg</td><td class="num">(2, 5)</td><td class="num">(3, 12)</td><td class="num">2.93 s</td><td class="num">identical</td><td class="num">0.60 s</td></tr>
+            <tr><td>monastery.jpg</td><td class="num">(2, &minus;3)</td><td class="num">(2, 3)</td><td class="num">2.90 s</td><td class="num">identical</td><td class="num">0.54 s</td></tr>
+            <tr><td>tobolsk.jpg</td><td class="num">(3, 3)</td><td class="num">(3, 6)</td><td class="num">3.16 s</td><td class="num">identical</td><td class="num">0.57 s</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">
+        Offsets are (x, y) = (horizontal, vertical), the amount the green or red frame is
+        moved to land on blue. The pyramid finds exactly the same answer roughly five times
+        faster, which is a useful sanity check that the two paths agree.
+      </p>
+    </section>
+
+    <!-- ================= PYRAMID ================= -->
+    <section class="part" id="pyramid">
+      <h2><span class="part-label">Part 3</span>The image pyramid</h2>
+      <p>
+        Single-scale search collapses on the full-resolution plates, for two separate reasons.
+        The first is correctness: melons.tif needs to move its red frame
+        <strong>177 pixels</strong>, and self_portrait.tif needs 176. A &plusmn;15 window
+        simply cannot reach those, so no amount of waiting would find the right answer. The
+        second is cost: widening the window to &plusmn;200 would mean 401 &times; 401 &asymp;
+        161,000 candidate offsets, each one scored over an 11-megapixel frame.
+      </p>
+      <p>
+        The fix is to search coarse-to-fine. <code>pyramid()</code> halves the image over and
+        over until it is under 200 pixels tall, runs the exhaustive &plusmn;15 search there,
+        then walks back up. At each step up it doubles the offset it inherited — a shift of
+        <em>n</em> pixels at half size is <em>2n</em> at full size — and searches only a small
+        &plusmn;5 correction around it:
+      </p>
+      <pre class="code">def pyramid(channel1, channel2):
+    if channel2.shape[0] &lt; 200:
+        return align(channel1, channel2, 15, 15, margin=...)      <span class="cm"># coarsest level</span>
+    else:
+        dx, dy, score = pyramid(rescale(channel1, 0.5),
+                                rescale(channel2, 0.5))           <span class="cm"># recurse</span>
+        dx *= 2
+        dy *= 2                                                   <span class="cm"># scale back up</span>
+        <span class="cm"># apply the inherited guess, then refine it by at most +-5</span>
+        col_shift = np.roll(np.roll(channel1, dy, axis=0), dx, axis=1)
+        corrected_dx, corrected_dy, new_score = align(col_shift, channel2, 5, 5, margin=...)
+        return dx + corrected_dx, dy + corrected_dy, new_score</pre>
+      <p>
+        A 3200-pixel-tall frame takes about six halvings to get under 200, so the whole search
+        is one 961-candidate pass on a tiny image plus six 121-candidate passes. Because each
+        level is a quarter the area of the one above it, the cost is dominated by the single
+        pass over the full-resolution image, and the offsets it can reach grow by roughly a
+        factor of two per level, which is how it reaches 177 pixels from a &plusmn;15 start.
+      </p>
+      <div class="discuss">
+        <strong>Cost in practice</strong>
+        emir.tif is a 9,627 &times; 3,702 plate, so each of its three frames is
+        3,209 &times; 3,702. Aligning both the green and the red frame to blue takes
+        <strong>44 seconds</strong>, comfortably inside the one-minute-per-image target, and
+        all fourteen run in a single pass without any per-image tuning: the same parameters
+        are used everywhere.
+      </div>
+    </section>
+
+    <!-- ================= BORDERS ================= -->
+    <section class="part" id="borders">
+      <h2><span class="part-label">Part 4</span>The bug that mattered: aligning borders instead of photographs</h2>
+      <p>
+        With the pyramid working, seven of the fourteen images still came out wrong. Some were
+        subtly soft, and two — harvesters and self_portrait — were doubled so badly the whole
+        frame looked embossed. The offsets were not random, though, and that was the clue.
+        Measuring how far each output was still misaligned gave this:
+      </p>
+      <div class="table-scroll">
+        <table class="scores">
+          <thead>
+            <tr><th>Image</th><th>Residual error</th><th>Direction</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>self_portrait</td><td class="num">31 px</td><td class="num">horizontal</td></tr>
+            <tr><td>harvesters</td><td class="num">23 px</td><td class="num">horizontal</td></tr>
+            <tr><td>three_generations</td><td class="num">14 px</td><td class="num">horizontal</td></tr>
+            <tr><td>ilemselga</td><td class="num">14 px</td><td class="num">horizontal</td></tr>
+            <tr><td>church</td><td class="num">11 px</td><td class="num">horizontal</td></tr>
+            <tr><td>wharf</td><td class="num">6 px</td><td class="num">horizontal</td></tr>
+            <tr><td>melons</td><td class="num">6 px</td><td class="num">horizontal</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Almost every error was <em>horizontal</em>, with the vertical component at or near
+        zero. A search that was simply confused would not favour one axis so strongly, so
+        something in the images had to be pulling sideways.
+      </p>
+      <p>
+        It was the plate borders. Each scanned frame is ringed by black and white edging, and
+        those borders do not sit at the same place in all three exposures — they are mostly
+        vertical strips, offset horizontally from frame to frame. A Sobel filter reports the
+        strongest edge it can find, and the hard black-to-white transition of a border is a far
+        stronger edge than anything in an actual photograph. So the search was quietly
+        optimising the wrong thing: it was lining up the <em>borders</em>, and dragging the
+        photograph out of alignment to do it.
+      </p>
+      <div class="discuss">
+        <strong>The fix</strong>
+        The <code>align()</code> function already cropped a margin off before scoring, to
+        discard the <code>np.roll</code> wrap-around. Widening that margin to also exclude the
+        outer 15% of the frame keeps the borders out of the score entirely, so the only edges
+        left to match are the ones belonging to the photograph. That is the whole change —
+        one extra variable, used in the two <code>margin</code> arguments. The search windows,
+        the metric, and the recursion are all untouched.
+      </div>
+      <pre class="code"><span class="cm"># ignore the outer 15% when scoring. the plate borders sit at a different
+# offset in each of the three exposures, and sobel makes them the strongest
+# edges in the frame, so otherwise we line up the borders, not the photo</span>
+border = int(min(channel2.shape) * 0.15)</pre>
+      <p>
+        All seven went to a residual of zero. The pairs below are the same crop, at full
+        resolution, before and after.
+      </p>
+
+      <div class="ba">
+        <h4><span class="tag bad">31 px</span>self_portrait.tif</h4>
+        <div class="figure-row">
+          <figure><img src="media/compare/self_portrait_before.jpg" alt="self_portrait before the fix, heavily doubled">
+            <figcaption>Before — the whole hillside is doubled</figcaption></figure>
+          <figure><img src="media/compare/self_portrait_after.jpg" alt="self_portrait after the fix, sharp">
+            <figcaption>After — foliage and trees resolve cleanly</figcaption></figure>
+        </div>
+      </div>
+
+      <div class="ba">
+        <h4><span class="tag bad">23 px</span>harvesters.tif</h4>
+        <div class="figure-row">
+          <figure><img src="media/compare/harvesters_before.jpg" alt="harvesters before the fix, magenta and green doubling">
+            <figcaption>Before — magenta and green doubling across the field</figcaption></figure>
+          <figure><img src="media/compare/harvesters_after.jpg" alt="harvesters after the fix, sharp">
+            <figcaption>After — faces, baskets and tea bushes are sharp</figcaption></figure>
+        </div>
+      </div>
+
+      <div class="ba">
+        <h4><span class="tag bad">14 px</span>three_generations.tif</h4>
+        <div class="figure-row">
+          <figure><img src="media/compare/three_generations_before.jpg" alt="three_generations before the fix, colour fringing">
+            <figcaption>Before — green and magenta fringes on the roofline</figcaption></figure>
+          <figure><img src="media/compare/three_generations_after.jpg" alt="three_generations after the fix">
+            <figcaption>After — the roof edge and wall are clean</figcaption></figure>
+        </div>
+      </div>
+
+      <div class="ba">
+        <h4><span class="tag bad">14 px</span>ilemselga.tif</h4>
+        <div class="figure-row">
+          <figure><img src="media/compare/ilemselga_before.jpg" alt="ilemselga before the fix, fringed dome">
+            <figcaption>Before — the dome and cross split into colour bands</figcaption></figure>
+          <figure><img src="media/compare/ilemselga_after.jpg" alt="ilemselga after the fix">
+            <figcaption>After — dome, cross and overhead wire are crisp</figcaption></figure>
+        </div>
+      </div>
+
+      <div class="ba">
+        <h4><span class="tag bad">11 px</span>church.tif</h4>
+        <div class="figure-row">
+          <figure><img src="media/compare/church_before.jpg" alt="church before the fix, yellow and blue separation on the shoreline">
+            <figcaption>Before — yellow and blue separation on the stones</figcaption></figure>
+          <figure><img src="media/compare/church_after.jpg" alt="church after the fix">
+            <figcaption>After — stones, steps and logs register correctly</figcaption></figure>
+        </div>
+      </div>
+
+      <div class="ba">
+        <h4><span class="tag bad">6 px</span>wharf.tif</h4>
+        <div class="figure-row">
+          <figure><img src="media/compare/wharf_before.jpg" alt="wharf before the fix, rigging split into red and cyan">
+            <figcaption>Before — each rigging line splits into red and cyan</figcaption></figure>
+          <figure><img src="media/compare/wharf_after.jpg" alt="wharf after the fix">
+            <figcaption>After — single rigging lines, sharp pines</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= RESULTS ================= -->
+    <section class="part" id="results">
+      <h2><span class="part-label">Part 5</span>Results and displacement vectors</h2>
+      <p>
+        All fourteen provided plates, aligned with the multi-scale pyramid using the L2 norm
+        on Sobel gradients. The score column is the final L2 norm at the chosen offset. It is
+        a sum over the overlapping window, so it is only meaningful <em>within</em> a row,
+        comparing green against red — it does not compare across images, because a bigger or
+        busier frame accumulates a larger sum regardless of how well it matched.
+      </p>
+      <div class="table-scroll">
+        <table class="scores">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Green (x, y)</th>
+              <th>L2 score</th>
+              <th>Red (x, y)</th>
+              <th>L2 score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>cathedral.jpg</td><td class="num">(2, 5)</td><td class="num">8.83</td><td class="num">(3, 12)</td><td class="num">10.73</td></tr>
+            <tr><td>church.tif</td><td class="num">(4, 25)</td><td class="num">42.44</td><td class="num">(&minus;4, 58)</td><td class="num">41.66</td></tr>
+            <tr><td>emir.tif</td><td class="num">(24, 49)</td><td class="num">80.44</td><td class="num">(40, 107)</td><td class="num">81.18</td></tr>
+            <tr><td>harvesters.tif</td><td class="num">(17, 60)</td><td class="num">83.42</td><td class="num">(14, 124)</td><td class="num">73.62</td></tr>
+            <tr><td>icon.tif</td><td class="num">(17, 42)</td><td class="num">140.49</td><td class="num">(23, 90)</td><td class="num">128.21</td></tr>
+            <tr><td>ilemselga.tif</td><td class="num">(7, 40)</td><td class="num">48.74</td><td class="num">(11, 131)</td><td class="num">45.82</td></tr>
+            <tr><td>melons.tif</td><td class="num">(10, 80)</td><td class="num">65.70</td><td class="num">(13, 177)</td><td class="num">67.54</td></tr>
+            <tr><td>monastery.jpg</td><td class="num">(2, &minus;3)</td><td class="num">9.29</td><td class="num">(2, 3)</td><td class="num">12.85</td></tr>
+            <tr><td>religous_painting.tif</td><td class="num">(6, 30)</td><td class="num">88.41</td><td class="num">(6, 70)</td><td class="num">83.77</td></tr>
+            <tr><td>self_portrait.tif</td><td class="num">(29, 78)</td><td class="num">83.77</td><td class="num">(37, 176)</td><td class="num">81.06</td></tr>
+            <tr><td>siren.tif</td><td class="num">(&minus;6, 49)</td><td class="num">82.10</td><td class="num">(&minus;24, 96)</td><td class="num">63.09</td></tr>
+            <tr><td>three_generations.tif</td><td class="num">(12, 53)</td><td class="num">62.18</td><td class="num">(9, 111)</td><td class="num">56.15</td></tr>
+            <tr><td>tobolsk.jpg</td><td class="num">(3, 3)</td><td class="num">17.46</td><td class="num">(3, 6)</td><td class="num">21.34</td></tr>
+            <tr><td>wharf.tif</td><td class="num">(&minus;6, 15)</td><td class="num">69.00</td><td class="num">(&minus;16, 83)</td><td class="num">75.07</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="gallery">
+        <figure><img src="media/results/cathedral.jpg" alt="cathedral colorized"><figcaption>cathedral<span class="off">G (2, 5) · R (3, 12)</span></figcaption></figure>
+        <figure><img src="media/results/church.jpg" alt="church colorized"><figcaption>church<span class="off">G (4, 25) · R (&minus;4, 58)</span></figcaption></figure>
+        <figure><img src="media/results/emir.jpg" alt="emir colorized"><figcaption>emir<span class="off">G (24, 49) · R (40, 107)</span></figcaption></figure>
+        <figure><img src="media/results/harvesters.jpg" alt="harvesters colorized"><figcaption>harvesters<span class="off">G (17, 60) · R (14, 124)</span></figcaption></figure>
+        <figure><img src="media/results/icon.jpg" alt="icon colorized"><figcaption>icon<span class="off">G (17, 42) · R (23, 90)</span></figcaption></figure>
+        <figure><img src="media/results/ilemselga.jpg" alt="ilemselga colorized"><figcaption>ilemselga<span class="off">G (7, 40) · R (11, 131)</span></figcaption></figure>
+        <figure><img src="media/results/melons.jpg" alt="melons colorized"><figcaption>melons<span class="off">G (10, 80) · R (13, 177)</span></figcaption></figure>
+        <figure><img src="media/results/monastery.jpg" alt="monastery colorized"><figcaption>monastery<span class="off">G (2, &minus;3) · R (2, 3)</span></figcaption></figure>
+        <figure><img src="media/results/religous_painting.jpg" alt="religious painting colorized"><figcaption>religous_painting<span class="off">G (6, 30) · R (6, 70)</span></figcaption></figure>
+        <figure><img src="media/results/self_portrait.jpg" alt="self portrait colorized"><figcaption>self_portrait<span class="off">G (29, 78) · R (37, 176)</span></figcaption></figure>
+        <figure><img src="media/results/siren.jpg" alt="siren colorized"><figcaption>siren<span class="off">G (&minus;6, 49) · R (&minus;24, 96)</span></figcaption></figure>
+        <figure><img src="media/results/three_generations.jpg" alt="three generations colorized"><figcaption>three_generations<span class="off">G (12, 53) · R (9, 111)</span></figcaption></figure>
+        <figure><img src="media/results/tobolsk.jpg" alt="tobolsk colorized"><figcaption>tobolsk<span class="off">G (3, 3) · R (3, 6)</span></figcaption></figure>
+        <figure><img src="media/results/wharf.jpg" alt="wharf colorized"><figcaption>wharf<span class="off">G (&minus;6, 15) · R (&minus;16, 83)</span></figcaption></figure>
+      </div>
+    </section>
+
+    <!-- ================= LIMITS ================= -->
+    <section class="part" id="limits">
+      <h2><span class="part-label">Part 6</span>What is still imperfect</h2>
+      <p>
+        Thirteen of the fourteen now measure a residual misalignment of exactly zero, and the
+        last, religous_painting.tif, measures 3 pixels, which is well under a tenth of a
+        percent of the frame width and is not visible. There are no remaining alignment
+        failures to report. Three cosmetic things are worth being straight about, though.
+      </p>
+      <p>
+        <strong>The plate borders are still in the output.</strong> The fix in Part 4 keeps the
+        borders out of the <em>score</em>, which is what alignment needed, but it does not
+        remove them from the saved image, so the coloured edging is still visible around every
+        frame. Detecting where each border ends and trimming to it is a separate piece of work.
+      </p>
+      <p>
+        <strong>The water in church.tif shows rainbow banding</strong>, and that one is not
+        fixable by aligning. The three exposures were taken one after another, and the river
+        surface moved in between, so the three frames genuinely record different water. No
+        single translation can reconcile them. The test is whether the solid parts of the scene
+        line up, and the stones, steps and building in that same frame do.
+      </p>
+      <p>
+        <strong>The contrast step is doing less than its name suggests.</strong> The function is
+        called <code>white_balance</code>, but what it does is stretch each channel so that its
+        1st and 99th percentile land on 0 and 1. That is <em>automatic contrast</em>: it fixes
+        exposure and restores punch, and it does help, but it is not white balance. Real white
+        balance means estimating what colour the light was and cancelling it, which this does
+        not attempt.
+      </p>
+      <pre class="code">def white_balance(im, lo=1, hi=99):
+    out = np.zeros_like(im)
+    for c in range(im.shape[2]):
+        lo_v, hi_v = np.percentile(im[:, :, c], [lo, hi])
+        out[:, :, c] = np.clip((im[:, :, c] - lo_v) / (hi_v - lo_v), 0, 1)
+    return out</pre>
+      <p class="note">
+        Percentiles rather than the true minimum and maximum, so that a few dust specks or a
+        blown highlight cannot waste the entire range on outliers.
+      </p>
+    </section>
+
+    <footer class="page-footer">
+      &copy; 2026 Beni Michel · CS180 Project 1
+    </footer>
+  </div>
+</body>
+</html>
