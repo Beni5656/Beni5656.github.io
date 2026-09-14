@@ -161,6 +161,69 @@
         off all four sides and compare only the interior. This margin turns out to matter for
         a second and much more important reason, which is <a href="#borders">Part 4</a>.
       </div>
+
+      <h3 style="margin-top:32px;font-size:1.05rem;">Checking that against the plain metrics</h3>
+      <p>
+        Claiming gradients beat raw pixels is easy; it is worth actually measuring. Both
+        <code>align()</code> and <code>pyramid()</code> take a <code>use_edges</code> flag and
+        a <code>metric</code>, so the identical search can be run three ways. Below is every
+        one of the fourteen plates aligned with plain L2 on RGB pixel values, with NCC on RGB
+        pixel values, and with L2 on Sobel gradients. "Matches" means it landed within 3 pixels
+        of the verified-correct offset.
+      </p>
+      <div class="table-scroll">
+        <table class="scores">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>L2 on raw pixels</th>
+              <th>NCC on raw pixels</th>
+              <th>L2 on Sobel (used)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>cathedral</td><td class="num">matches</td><td class="num">matches</td><td class="num">matches</td></tr>
+            <tr><td>church</td><td class="num" style="color:#b00020"><strong>off by 367 px</strong></td><td class="num">matches</td><td class="num">matches</td></tr>
+            <tr><td>emir</td><td class="num" style="color:#b00020"><strong>off by 41 px</strong></td><td class="num" style="color:#b00020"><strong>off by 588 px</strong></td><td class="num">matches</td></tr>
+            <tr><td>harvesters</td><td class="num">matches</td><td class="num">matches</td><td class="num">matches</td></tr>
+            <tr><td>icon</td><td class="num">matches</td><td class="num">matches</td><td class="num">matches</td></tr>
+            <tr><td>ilemselga</td><td class="num">matches</td><td class="num">matches</td><td class="num">matches</td></tr>
+            <tr><td>melons</td><td class="num">matches</td><td class="num">matches</td><td class="num">matches</td></tr>
+            <tr><td>monastery</td><td class="num">matches</td><td class="num">matches</td><td class="num">matches</td></tr>
+            <tr><td>religous_painting</td><td class="num">matches</td><td class="num">matches</td><td class="num">matches</td></tr>
+            <tr><td>self_portrait</td><td class="num">matches</td><td class="num">matches</td><td class="num">matches</td></tr>
+            <tr><td>siren</td><td class="num">matches</td><td class="num">matches</td><td class="num">matches</td></tr>
+            <tr><td>three_generations</td><td class="num">matches</td><td class="num">matches</td><td class="num">matches</td></tr>
+            <tr><td>tobolsk</td><td class="num">matches</td><td class="num">matches</td><td class="num">matches</td></tr>
+            <tr><td>wharf</td><td class="num">matches</td><td class="num">matches</td><td class="num">matches</td></tr>
+            <tr style="border-top:2px solid var(--border)">
+              <td><strong>Total</strong></td>
+              <td class="num"><strong>12 / 14</strong></td>
+              <td class="num"><strong>13 / 14</strong></td>
+              <td class="num"><strong>14 / 14</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">
+        Where a metric differs by only a pixel or two from the Sobel answer it is counted as a
+        match; those differences are not visible.
+      </p>
+      <div class="discuss">
+        <strong>What the failures say</strong>
+        The interesting column is emir, which is the one image the project itself singles out,
+        and it is the one image that defeats <em>both</em> raw-pixel metrics. That is the
+        brightness problem made concrete: the Emir's robe is a strong blue, so it is bright in
+        the blue exposure and dark in the red one, and a metric comparing pixel values is being
+        asked to match a light region against a dark one. NCC does not rescue it, because NCC
+        only removes a single global offset and gain, and this is a per-material difference,
+        not a global one — NCC actually lands 588 pixels away, far worse than plain L2. Sobel
+        sidesteps the whole issue by matching the robe's <em>outline</em>, which is in the same
+        place in every exposure no matter how bright the fabric photographs. Church is the
+        mirror-image case: plain L2 is thrown 367 pixels off by the large flat expanses of sky
+        and water, which match almost as well at the wrong offset as the right one, and there
+        NCC's normalisation is exactly the right tool.
+      </div>
     </section>
 
     <!-- ================= SINGLE SCALE ================= -->
@@ -437,14 +500,99 @@ border = int(min(channel2.shape) * 0.15)</pre>
       </div>
     </section>
 
+    <!-- ================= OWN PICKS ================= -->
+    <section class="part" id="ownpicks">
+      <h2><span class="part-label">Part 6</span>Four more plates I picked myself</h2>
+      <p>
+        These are not from the supplied set. I pulled them straight from the Library of
+        Congress digitisation of the collection as raw three-frame plates and ran them through
+        the same code with the same parameters, nothing tuned. Each is around 9,700 &times;
+        3,750 pixels.
+      </p>
+      <div class="table-scroll">
+        <table class="scores">
+          <thead>
+            <tr>
+              <th>Plate</th>
+              <th>Green (x, y)</th>
+              <th>L2 score</th>
+              <th>Red (x, y)</th>
+              <th>L2 score</th>
+              <th>Residual</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>LC-DIG-prok-00458</td><td class="num">(2, 42)</td><td class="num">95.14</td><td class="num">(29, 85)</td><td class="num">80.85</td><td class="num">3 px</td></tr>
+            <tr><td>LC-DIG-prok-01043</td><td class="num">(9, &minus;14)</td><td class="num">100.34</td><td class="num">(16, 12)</td><td class="num">93.28</td><td class="num">3 px</td></tr>
+            <tr><td>LC-DIG-prok-00307</td><td class="num">(19, 17)</td><td class="num">70.60</td><td class="num">(38, 86)</td><td class="num">63.33</td><td class="num">0 px</td></tr>
+            <tr><td>LC-DIG-prok-01554</td><td class="num">(&minus;1, 80)</td><td class="num">56.68</td><td class="num">(&minus;10, 163)</td><td class="num">63.66</td><td class="num">0 px</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">
+        All four land at a residual of 3 pixels or less, so the run is 18 for 18 across the
+        supplied plates and these.
+      </p>
+
+      <div class="figure-row">
+        <figure>
+          <img src="media/results/loc_00458.jpg" alt="Steam locomotive on a railway line">
+          <figcaption>
+            <em>Parovoz "Kompaund" s paroperegrevatelem Shmidta</em> — a compound locomotive
+            with a Schmidt superheater.<br>LC-DIG-prok-00458 · G (2, 42) · R (29, 85)
+          </figcaption>
+        </figure>
+        <figure>
+          <img src="media/results/loc_01043.jpg" alt="Three young women holding dishes of berries outside a timber building">
+          <figcaption>
+            <em>Krestʹi&#x0361;anski&#x0361;ia di&#x0361;evushki</em> (Peasant girls), photographed
+            near Kirillov in 1909.<br>LC-DIG-prok-01043 · G (9, &minus;14) · R (16, 12)
+          </figcaption>
+        </figure>
+      </div>
+      <div class="figure-row">
+        <figure>
+          <img src="media/results/loc_00307.jpg" alt="Village street of timber houses among tall pines">
+          <figcaption>
+            A village street of timber houses among pines.<br>LC-DIG-prok-00307 ·
+            G (19, 17) · R (38, 86)
+          </figcaption>
+        </figure>
+        <figure>
+          <img src="media/results/loc_01554.jpg" alt="White building above a shingle beach beneath a wooded ridge">
+          <figcaption>
+            A building above a shingle beach, below a wooded ridge.<br>LC-DIG-prok-01554 ·
+            G (&minus;1, 80) · R (&minus;10, 163)
+          </figcaption>
+        </figure>
+      </div>
+      <div class="discuss">
+        <strong>Why these four</strong>
+        The two source-side artifacts elsewhere in this project both came from things that
+        moved between exposures, so I deliberately went looking for still subjects: a stopped
+        locomotive, posed portraits, buildings. The one risk in the set is the group portrait,
+        since people do drift while three plates are exposed in sequence, and it does carry a
+        faint residual on the faces for exactly that reason. The locomotive is the nicest
+        result of the four — the lining on the boiler and the spokes of the driving wheels are
+        sharp, and those are the details that fall apart first when the channels do not agree.
+        The last plate also shows the widest offset here, moving red 163 pixels vertically.
+      </div>
+      <p class="note">
+        Plates downloaded from the Library of Congress
+        <a href="https://www.loc.gov/collections/prokudin-gorskii/">Prokudin-Gorskii Collection</a>,
+        which lists no known restrictions on publication.
+      </p>
+    </section>
+
     <!-- ================= LIMITS ================= -->
     <section class="part" id="limits">
-      <h2><span class="part-label">Part 6</span>What is still imperfect</h2>
+      <h2><span class="part-label">Part 7</span>What is still imperfect</h2>
       <p>
-        Thirteen of the fourteen now measure a residual misalignment of exactly zero, and the
-        last, religous_painting.tif, measures 3 pixels, which is well under a tenth of a
-        percent of the frame width and is not visible. There are no remaining alignment
-        failures to report. Three cosmetic things are worth being straight about, though.
+        Across all eighteen plates — the fourteen supplied and the four I chose — every one
+        measures a residual misalignment of 3 pixels or less, and most are exactly zero. Three
+        pixels on a frame some 3,700 wide is under a tenth of a percent and is not visible. So
+        there are no alignment failures to report. Three cosmetic things are worth being
+        straight about, though.
       </p>
       <p>
         <strong>The plate borders are still in the output.</strong> The fix in Part 4 keeps the
