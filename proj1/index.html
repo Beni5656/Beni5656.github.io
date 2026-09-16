@@ -50,7 +50,6 @@
       line-height: 1.5;
       margin: 18px 0;
     }
-    pre.code .cm { color: var(--muted); }
     .gallery {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -144,13 +143,12 @@
     grad2 = sobel(channel2)
     cropped2 = grad2[margin : -margin, margin : -margin]
 
-    for i in dx:                                   <span class="cm"># horizontal offsets, -15..15</span>
-        for j in dy:                               <span class="cm"># vertical offsets, -15..15</span>
+    for i in dx:
+        for j in dy:
             row_shift = np.roll(grad1, j, axis=0)
             col_shift = np.roll(row_shift, i, axis=1)
             cropped1  = col_shift[margin : -margin, margin : -margin]
-            score = euclidean_distance(cropped1, cropped2)
-            <span class="cm"># keep the offset with the lowest score</span></pre>
+            score = euclidean_distance(cropped1, cropped2)</pre>
       <p>
         For the three low-res JPEGs this is all you need, since their real offsets sit well
         inside &plusmn;15 pixels:
@@ -189,12 +187,12 @@
       </p>
       <pre class="code">def pyramid(channel1, channel2):
     if channel2.shape[0] &lt; 200:
-        return align(channel1, channel2, 15, 15, margin=...)      <span class="cm"># coarsest level</span>
+        return align(channel1, channel2, 15, 15, margin=...)
     else:
         dx, dy, score = pyramid(rescale(channel1, 0.5),
-                                rescale(channel2, 0.5))           <span class="cm"># recurse</span>
+                                rescale(channel2, 0.5))
         dx *= 2
-        dy *= 2                                                   <span class="cm"># scale back up</span>
+        dy *= 2
         col_shift = np.roll(np.roll(channel1, dy, axis=0), dx, axis=1)
         corrected_dx, corrected_dy, new_score = align(col_shift, channel2, 5, 5, margin=...)
         return dx + corrected_dx, dy + corrected_dy, new_score</pre>
