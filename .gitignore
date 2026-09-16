@@ -13,3 +13,6 @@ proj1/results/
 
 # Scratch
 run_log.txt
+
+# never publish the solution code -- Gradescope only
+proj1/color_images.py
