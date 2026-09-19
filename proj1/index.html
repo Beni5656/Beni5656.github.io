@@ -109,7 +109,7 @@
         overlapping patches:
       </p>
       <pre class="code">def euclidean_distance(im1, im2):
-    return np.sqrt(np.sum(np.sum((im1 - im2) ** 2)))</pre>
+    return np.sqrt(np.sum((im1 - im2) ** 2))</pre>
       <p>
         Lower score means a better match, 0 is perfect. The other metric people usually bring
         up is <strong>normalized cross-correlation (NCC)</strong>: mean-subtract both patches,
