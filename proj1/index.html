@@ -125,7 +125,7 @@
       </p>
       <p>
         I don't actually run either metric on raw pixel brightness in my final code, though.
-        The spec calls this out directly with the Emir of Bukhara photo: his robe is bright
+        The Emir of Bukhara photo is the clearest example of why: his robe is bright
         blue, so it's bright in the blue channel and dark in the red one, which breaks any
         metric that compares raw intensity. So both <code>align()</code> and
         <code>pyramid()</code> run each frame through a <strong>Sobel filter</strong> first and
@@ -136,7 +136,8 @@
       <p class="note">
         Since <code>np.roll</code> wraps pixels around instead of dropping them, I crop a
         margin off all four sides before scoring so that wrapped strip never gets counted.
-        This also lines up with the assignment's advice to ignore borders when scoring.
+        It's also just a good habit in general, borders are noisy and shouldn't count toward
+        the score.
       </p>
     </section>
 
@@ -209,9 +210,9 @@
       <p>
         A 3200px-tall frame needs about six halvings to get under 200px, so the total cost is
         one 961-candidate pass on the tiny version plus six 121-candidate passes going back up.
-        Most of the actual work is that last pass at full resolution. This stays under the
-        one-minute-per-image target from the assignment, and I use the exact same parameters
-        for every image, no per-image tuning.
+        Most of the actual work is that last pass at full resolution. This stays under a
+        minute per image, and I use the exact same parameters for every image, no per-image
+        tuning.
       </p>
       <p>
         Offsets and L2 scores for all fourteen provided plates, pyramid + Sobel/L2:
@@ -273,8 +274,8 @@
       <h2><span class="part-label">Part 4</span>Results with plain L2 and NCC on RGB pixel values</h2>
       <p>
         All of that, though, is scoring edges, not colors. Everything above uses Sobel
-        gradients, not raw pixels. The assignment wants the basic L2/NCC metrics documented
-        too, so I reran the same pyramid using
+        gradients, not raw pixels. It's worth showing what the basic L2/NCC metrics do on
+        their own too, so I reran the same pyramid using
         <code>euclidean_distance</code> and <code>normalized_cross_correlation</code> directly
         on RGB values instead, nothing else changed. "Matches" below means it landed within 3
         pixels of the Sobel result above.
@@ -312,7 +313,7 @@
         </table>
       </div>
       <p>
-        Emir is the one the assignment specifically warns about, and it's the only image both
+        Emir is the tricky one from way back in Part 1, and it's the only image both
         raw-pixel metrics fail on. Makes sense: the robe is bright in one channel and dark in
         the other, so comparing raw pixel values is basically comparing light to dark. NCC
         doesn't save it either, since it only corrects for one global brightness/gain shift,
@@ -356,8 +357,8 @@
     <section class="part" id="ownpicks">
       <h2><span class="part-label">Part 5</span>Results on my own examples</h2>
       <p>
-        All fourteen provided plates run through the same pipeline, but the assignment also
-        asks for a few images of your own choosing. I downloaded four more plates as raw
+        All fourteen provided plates run through the same pipeline, but I wanted to try it on
+        a few images of my own too. I downloaded four more plates as raw
         three-frame scans from the Library of Congress
         <a href="https://www.loc.gov/collections/prokudin-gorskii/">Prokudin-Gorskii Collection</a>
         and ran them through the exact same code, same parameters, no per-image tuning.
@@ -421,8 +422,8 @@
       <h2><span class="part-label">Part 6</span>Alignment failures</h2>
       <p>
         Last thing to check: did anything actually fail? None of the 18 images (14 provided +
-        4 of my own) did. Every one landed within a few pixels of where it should, well inside
-        what the assignment allows.
+        4 of my own) did. Every one landed within a few pixels of where it should, close enough
+        that you can't see it in the final photo.
       </p>
     </section>
 
