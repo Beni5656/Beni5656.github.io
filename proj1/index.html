@@ -307,11 +307,11 @@
         </table>
       </div>
       <p>
-        Emir is the tricky one from way back in Part 1, and it's the only image both
-        raw-pixel metrics fail on. Makes sense: the robe is bright in one channel and dark in
-        the other, so comparing raw pixel values is basically comparing light to dark. NCC
-        doesn't save it either, since it only corrects for one global brightness/gain shift,
-        not a difference that changes per material, and it actually does worse here, landing
+        Emir is the only one where both metrics fail. Makes sense since the robe is bright in
+        one channel and dark in the other, so comparing raw pixel values is basically comparing
+        light to dark. NCC does not fix it either since it only corrects for one global
+        brightness/gain shift, not a difference that changes per material, and it actually
+        does worse here, landing
         588px off. Church is kind of the opposite problem: plain L2 gets fooled by the big flat
         sky and water, which match almost as well at the wrong spot as the right one, but NCC's
         normalizing fixes that case fine.
