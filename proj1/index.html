@@ -179,18 +179,15 @@
           </tbody>
         </table>
       </div>
-      <p class="note">
-        (x, y) means (horizontal, vertical): how far green or red gets moved to land on blue.
-      </p>
     </section>
 
     <!-- ================= PYRAMID ================= -->
     <section class="part" id="pyramid">
       <h2><span class="part-label">Part 3</span>Multi-scale pyramid alignment</h2>
       <p>
-        Problem is, the full-size plates need offsets as large as 177 pixels, way past a
-        &plusmn;15 window. Just widening the window to &plusmn;200 would mean around 161,000
-        candidates scored on an 11-megapixel image, which is way too slow. So
+        Problem is, the full-size plates need offsets way bigger than a &plusmn;15 window can
+        reach. Just widening the window enough to cover that would mean scoring way more
+        candidates than is practical on a full-size image, way too slow. So
         <code>pyramid()</code> shrinks the image by half over and over until it's under 200
         pixels tall, runs the brute-force &plusmn;15 search there, then works back up, doubling
         the inherited offset each level and only checking a &plusmn;5 correction around it:
