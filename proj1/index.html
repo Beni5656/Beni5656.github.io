@@ -267,12 +267,12 @@
     <section class="part" id="rawpixels">
       <h2><span class="part-label">Part 4</span>Results with plain L2 and NCC on RGB pixel values</h2>
       <p>
-        All of that, though, is scoring edges, not colors. Everything above uses Sobel
-        gradients, not raw pixels. It's worth showing what the basic L2/NCC metrics do on
-        their own too, so I reran the same pyramid using
-        <code>euclidean_distance</code> and <code>normalized_cross_correlation</code> directly
-        on RGB values instead, nothing else changed. "Matches" below means it landed within 3
-        pixels of the Sobel result above.
+        All of that, though, is scoring edges, not colors. Plain L2 and NCC directly on RGB
+        pixel values was actually what I tried first, before switching to Sobel gradients.
+        Here's what that original approach looks like on its own: I reran the same pyramid
+        using <code>euclidean_distance</code> and <code>normalized_cross_correlation</code>
+        directly on RGB values instead, nothing else changed. "Matches" below means it landed
+        within 3 pixels of the Sobel result above.
       </p>
       <div class="table-scroll">
         <table class="scores">
