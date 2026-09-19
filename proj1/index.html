@@ -321,6 +321,35 @@
         sky and water, which match almost as well at the wrong spot as the right one, but NCC's
         normalizing fixes that case fine.
       </p>
+      <p>
+        The numbers above are one thing, but seeing it makes the failure obvious. Same crop,
+        same resolution, the only difference is which offset was used to build it:
+      </p>
+      <div class="figure-row">
+        <figure>
+          <img src="media/compare/emir_rawpixel.jpg" alt="Emir colorized with the raw-pixel L2 offset, showing heavy color fringing">
+          <figcaption>emir.tif, raw-pixel L2 offset (41px off)</figcaption>
+        </figure>
+        <figure>
+          <img src="media/compare/emir_sobel.jpg" alt="Emir colorized with the Sobel offset, sharp with no fringing">
+          <figcaption>emir.tif, Sobel offset (the one actually used)</figcaption>
+        </figure>
+      </div>
+      <div class="figure-row">
+        <figure>
+          <img src="media/compare/church_rawpixel.jpg" alt="Church colorized with the raw-pixel L2 offset; the church building is smeared into the background and unrecognizable">
+          <figcaption>church.tif, raw-pixel L2 offset (367px off, the building is gone)</figcaption>
+        </figure>
+        <figure>
+          <img src="media/compare/church_sobel.jpg" alt="Church colorized with the Sobel offset, the church building is sharp and clearly visible">
+          <figcaption>church.tif, Sobel offset (the one actually used)</figcaption>
+        </figure>
+      </div>
+      <p class="note">
+        Church's raw-pixel version is 367 pixels off in both channels at once, off by enough
+        that the church building itself isn't just blurry, it's smeared out of the frame
+        entirely, you can't tell there was ever a building there.
+      </p>
     </section>
 
     <!-- ================= OWN PICKS ================= -->
