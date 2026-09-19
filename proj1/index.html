@@ -204,11 +204,9 @@
         corrected_dx, corrected_dy, new_score = align(col_shift, channel2, 5, 5, margin=...)
         return dx + corrected_dx, dy + corrected_dy, new_score</pre>
       <p>
-        A 3200px-tall frame needs about six halvings to get under 200px, so the total cost is
-        one 961-candidate pass on the tiny version plus six 121-candidate passes going back up.
-        Most of the actual work is that last pass at full resolution. This stays under a
-        minute per image, and I use the exact same parameters for every image, no per-image
-        tuning.
+        This is fast because each level only runs a small, cheap search on top of the last
+        level's guess, instead of one huge brute-force search on the full-size image. I use
+        the exact same parameters for every image too, no per-image tuning.
       </p>
       <p>
         Offsets and L2 scores for all fourteen provided plates, pyramid + Sobel/L2:
