@@ -83,11 +83,17 @@
     <section class="part" id="overview">
       <h2><span class="part-label">Overview</span>What we're starting from</h2>
       <p>
-        Each glass plate is one tall grayscale scan holding three exposures of the same scene,
-        one behind a blue filter, one green, one red, stacked B/G/R top to bottom. To get a
-        color photo out of it, you split the plate into thirds and shift the green and red
-        pieces until they line up with the blue one. The only move allowed is a plain
-        (x, y) translation, no rotating or scaling.
+        Around 1907, a photographer named Prokudin-Gorskii figured out a way to take color
+        photos before color film existed: shoot the same scene three times through a blue,
+        a green, and a red filter, and let a projector recombine them later. The Library of
+        Congress has since scanned his glass plates, and each scan is one tall grayscale image
+        holding all three of those exposures, one behind a blue filter, one green, one red,
+        stacked B/G/R top to bottom.
+      </p>
+      <p>
+        Turning that back into a real color photo means cutting the plate into thirds and
+        shifting the green and red pieces until they line up with the blue one. The only move
+        allowed is a plain (x, y) translation, no rotating or scaling.
       </p>
     </section>
 
@@ -95,7 +101,10 @@
     <section class="part" id="metric">
       <h2><span class="part-label">Part 1</span>Scoring a candidate alignment</h2>
       <p>
-        To find the right offset I score every candidate shift and keep whichever scores best.
+        First problem: before you can search for the right shift, you need a way to tell
+        whether any given shift is good or bad. So the whole thing starts with a scoring
+        function. To find the right offset I score every candidate shift and keep whichever
+        scores best.
         The simplest score is the <strong>L2 norm</strong> (Euclidean distance) between the two
         overlapping patches:
       </p>
@@ -135,7 +144,8 @@
     <section class="part" id="singlescale">
       <h2><span class="part-label">Part 2</span>Single-scale alignment</h2>
       <p>
-        The base case is just brute force: try every offset from -15 to 15 in both directions,
+        With a way to score any given shift, the next step is just searching for the best one.
+        The simplest version is brute force: try every offset from -15 to 15 in both directions,
         score each one, keep the best. That's 31 &times; 31 = 961 candidates per channel:
       </p>
       <pre class="code">def align(channel1, channel2, num1, num2, margin):
@@ -262,8 +272,9 @@
     <section class="part" id="rawpixels">
       <h2><span class="part-label">Part 4</span>Results with plain L2 and NCC on RGB pixel values</h2>
       <p>
-        Everything above uses Sobel gradients, not raw pixels. The assignment wants the basic
-        L2/NCC metrics documented too though, so I reran the same pyramid using
+        All of that, though, is scoring edges, not colors. Everything above uses Sobel
+        gradients, not raw pixels. The assignment wants the basic L2/NCC metrics documented
+        too, so I reran the same pyramid using
         <code>euclidean_distance</code> and <code>normalized_cross_correlation</code> directly
         on RGB values instead, nothing else changed. "Matches" below means it landed within 3
         pixels of the Sobel result above.
@@ -316,7 +327,9 @@
     <section class="part" id="ownpicks">
       <h2><span class="part-label">Part 5</span>Results on my own examples</h2>
       <p>
-        I downloaded four more plates as raw three-frame scans from the Library of Congress
+        All fourteen provided plates run through the same pipeline, but the assignment also
+        asks for a few images of your own choosing. I downloaded four more plates as raw
+        three-frame scans from the Library of Congress
         <a href="https://www.loc.gov/collections/prokudin-gorskii/">Prokudin-Gorskii Collection</a>
         and ran them through the exact same code, same parameters, no per-image tuning.
       </p>
@@ -378,9 +391,11 @@
     <section class="part" id="failures">
       <h2><span class="part-label">Part 6</span>Alignment failures</h2>
       <p>
-        None of the 18 images (14 provided + 4 of my own) failed to align. I checked every
-        result above against an independently verified offset, and they all match to within a
-        few pixels, well inside what the assignment allows.
+        Last thing to check: did anything actually fail? None of the 18 images (14 provided +
+        4 of my own) did. I checked every result above a second way, running a fresh search on
+        top of the already-aligned output to make sure there was no leftover shift still hiding
+        in it, rather than just trusting what the algorithm printed the first time. They all
+        matched to within a few pixels, well inside what the assignment allows.
       </p>
     </section>
 
