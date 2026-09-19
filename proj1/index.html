@@ -125,13 +125,19 @@
       </p>
       <p>
         I don't actually run either metric on raw pixel brightness in my final code, though.
-        The Emir of Bukhara photo is the clearest example of why: his robe is bright
-        blue, so it's bright in the blue channel and dark in the red one, which breaks any
-        metric that compares raw intensity. So both <code>align()</code> and
-        <code>pyramid()</code> run each frame through a <strong>Sobel filter</strong> first and
-        compare gradient magnitude instead. Edges show up in the same place no matter how
-        bright a region looks in a given channel, so the outline of the robe lines up fine even
-        though the fabric itself doesn't.
+        Instead, both <code>align()</code> and <code>pyramid()</code> run each frame through a
+        <strong>Sobel filter</strong> first. A Sobel filter doesn't care how bright a pixel is,
+        it measures how sharply brightness changes between a pixel and its neighbors, so flat
+        areas come out near zero and real edges, boundaries between two different things, come
+        out strong. Comparing those edge maps instead of raw brightness is what I actually
+        score.
+      </p>
+      <p>
+        The Emir of Bukhara photo is the clearest example of why that matters: his robe is
+        bright blue, so it's bright in the blue channel and dark in the red one, which breaks
+        any metric that compares raw intensity directly. Edges show up in the same place no
+        matter how bright a region looks in a given channel, so the outline of the robe lines
+        up fine even though the fabric itself doesn't.
       </p>
       <p class="note">
         Since <code>np.roll</code> wraps pixels around instead of dropping them, I crop a
