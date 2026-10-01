@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Proj2 — Fun with Filters and Frequencies</title>
+  <title>Proj2: Fun with Filters and Frequencies</title>
   <link rel="stylesheet" href="../style.css">
   <style>
     /* proj2-only additions */
@@ -85,8 +85,8 @@
     <section class="part" id="convolutions">
       <h2><span class="part-label">Part 1.1</span>Convolutions from scratch</h2>
       <p>
-        I wrote 2D convolution two ways. The first uses four nested loops &mdash; two over the
-        image, two over the kernel &mdash; accumulating one multiply at a time. The second keeps
+        I wrote 2D convolution two ways. The first uses four nested loops, two over the
+        image and two over the kernel, accumulating one multiply at a time. The second keeps
         the two image loops but replaces the inner pair with a single vectorized multiply over
         the whole patch:
       </p>
@@ -130,8 +130,8 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
       <p>
         Convolving the cameraman with <code>D<sub>x</sub></code> and <code>D<sub>y</sub></code>
         gives the partial derivatives in each direction. Each one only responds to edges running
-        perpendicular to it &mdash; <code>D<sub>x</sub></code> picks up the vertical tripod legs
-        and building edges, <code>D<sub>y</sub></code> picks up horizontal ones like the
+        perpendicular to it. <code>D<sub>x</sub></code> picks up the vertical tripod legs
+        and building edges, while <code>D<sub>y</sub></code> picks up horizontal ones like the
         horizon.
       </p>
       <p>
@@ -152,7 +152,7 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
         <strong>Picking the threshold</strong>
         0.2 was chosen by eye as the point that keeps the coat, tripod and skyline while
         suppressing most of the grass. Lower values let a lot of grass noise through; higher
-        values start breaking the tripod legs into dashes. There isn't a clean separation &mdash;
+        values start breaking the tripod legs into dashes. There isn't a clean separation, because
         the grass texture genuinely has gradient magnitudes comparable to the weaker real edges,
         which is exactly the problem Part 1.3 addresses.
       </div>
@@ -189,7 +189,7 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
       <div class="discuss">
         <strong>Verifying the two are equivalent</strong>
         Comparing the one-step DoG result against the two-step blur-then-differentiate result
-        with <code>np.allclose</code> returns <code>True</code> &mdash; but only away from the
+        with <code>np.allclose</code> returns <code>True</code>, but only away from the
         borders. Padding the raw image once makes different zero assumptions than padding the
         already-blurred image a second time, so I exclude a margin of half the combined kernel
         size on each side before comparing. The interiors match exactly.
@@ -238,11 +238,11 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
       </div>
       <p>
         The whiskers, eye detail and nose edges all come up sharply. Worth noting the background
-        grid pattern also gets amplified &mdash; the source is a photo of a screen, and unsharp
+        grid pattern also gets amplified. The source is a photo of a screen, and unsharp
         masking boosts <em>all</em> high-frequency content, not just the detail you care about.
       </p>
 
-      <p class="row-label">Sharpening a blurred image &mdash; the round trip</p>
+      <p class="row-label">Sharpening a blurred image: the round trip</p>
       <div class="grid3">
         <figure><img src="media/cameraman_original.jpg" alt="cameraman original"><figcaption>original (sharp)</figcaption></figure>
         <figure><img src="media/cameraman_blurred_for_roundtrip.jpg" alt="cameraman blurred"><figcaption>after Gaussian blur</figcaption></figure>
@@ -252,7 +252,7 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
       <div class="discuss">
         <strong>Observation</strong>
         Sharpening is not an inverse of blurring. The re-sharpened image is clearly crisper than
-        the blurred one &mdash; edges are boosted back &mdash; but it does not recover the
+        the blurred one, since edges are boosted back, but it does not recover the
         original. Unsharp masking can only re-amplify high-frequency content that <em>survived</em>
         the blur; detail the Gaussian destroyed outright is gone and cannot be recreated. Fine
         texture stays missing, and the strong edges that do come back show slight ringing from
@@ -279,18 +279,18 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
         Instead I scale each image to a fixed target eye distance and crop a window around the
         eye midpoint that <em>both</em> images can fill, so every output pixel comes from real
         image data. For Derek and Nutmeg I fit a similarity transform to the two eye pairs, which
-        also handles rotation &mdash; necessary there because Nutmeg's head is tilted about 27&deg;
+        also handles rotation. That is necessary here because Nutmeg's head is tilted about 27&deg;
         relative to Derek's.
       </div>
 
-      <p class="row-label">Derek + Nutmeg &mdash; sigma1 = 4, sigma2 = 12</p>
+      <p class="row-label">Derek + Nutmeg: sigma1 = 4, sigma2 = 12</p>
       <div class="grid3">
         <figure><img src="media/derek_aligned.jpg" alt="derek aligned"><figcaption>high frequencies</figcaption></figure>
         <figure><img src="media/nutmeg_aligned.jpg" alt="nutmeg aligned"><figcaption>low frequencies</figcaption></figure>
         <figure><img src="media/hybrid_derek_nutmeg.jpg" alt="derek nutmeg hybrid"><figcaption>hybrid</figcaption></figure>
       </div>
 
-      <p class="row-label">Seal + panda &mdash; sigma1 = 4, sigma2 = 12</p>
+      <p class="row-label">Seal + panda: sigma1 = 4, sigma2 = 12</p>
       <div class="grid3">
         <figure><img src="media/seal_aligned.jpg" alt="seal aligned"><figcaption>high frequencies</figcaption></figure>
         <figure><img src="media/panda_aligned.jpg" alt="panda aligned"><figcaption>low frequencies</figcaption></figure>
@@ -303,7 +303,7 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
         it by the geometric mean of the eye-matched and head-matched scales.
       </p>
 
-      <p class="row-label">Cat + apple-person &mdash; sigma1 = 6, sigma2 = 14 (favorite result)</p>
+      <p class="row-label">Cat + apple-person: sigma1 = 6, sigma2 = 14 (favorite result)</p>
       <div class="grid3">
         <figure><img src="media/cat_aligned.jpg" alt="cat aligned"><figcaption>high frequencies</figcaption></figure>
         <figure><img src="media/apple_person_aligned.jpg" alt="apple person aligned"><figcaption>low frequencies</figcaption></figure>
@@ -363,7 +363,7 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
     <section class="part" id="stacks">
       <h2><span class="part-label">Part 2.3</span>Gaussian and Laplacian stacks</h2>
       <p>
-        A stack is a pyramid without the downsampling &mdash; every level stays at the original
+        A stack is a pyramid without the downsampling, so every level stays at the original
         resolution. Level 0 of the Gaussian stack is the input; each subsequent level is the
         previous one blurred again with the same kernel (49&times;49, &sigma; = 8), so the blur
         compounds. The Laplacian stack is the difference between consecutive Gaussian levels,
@@ -371,43 +371,43 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
         Laplacian stack reconstructs the original exactly.
       </p>
       <p>
-        The "oraple" column here is the naive splice &mdash; the left half of the apple
-        concatenated to the right half of the orange with a hard cut &mdash; which is what
+        The "oraple" column here is the naive splice: the left half of the apple
+        concatenated to the right half of the orange with a hard cut. That is what
         motivates the blending in Part 2.4.
       </p>
 
-      <p class="row-label">Gaussian stack &mdash; level 0</p>
+      <p class="row-label">Gaussian stack: level 0</p>
       <div class="grid3">
         <figure><img src="media/apple_gaussian_0.jpg" alt="apple gaussian 0"><figcaption>apple</figcaption></figure>
         <figure><img src="media/orange_gaussian_0.jpg" alt="orange gaussian 0"><figcaption>orange</figcaption></figure>
         <figure><img src="media/oraple_gaussian_0.jpg" alt="oraple gaussian 0"><figcaption>naive splice</figcaption></figure>
       </div>
-      <p class="row-label">Gaussian stack &mdash; level 2</p>
+      <p class="row-label">Gaussian stack: level 2</p>
       <div class="grid3">
         <figure><img src="media/apple_gaussian_2.jpg" alt="apple gaussian 2"><figcaption>apple</figcaption></figure>
         <figure><img src="media/orange_gaussian_2.jpg" alt="orange gaussian 2"><figcaption>orange</figcaption></figure>
         <figure><img src="media/oraple_gaussian_2.jpg" alt="oraple gaussian 2"><figcaption>naive splice</figcaption></figure>
       </div>
-      <p class="row-label">Gaussian stack &mdash; level 4</p>
+      <p class="row-label">Gaussian stack: level 4</p>
       <div class="grid3">
         <figure><img src="media/apple_gaussian_4.jpg" alt="apple gaussian 4"><figcaption>apple</figcaption></figure>
         <figure><img src="media/orange_gaussian_4.jpg" alt="orange gaussian 4"><figcaption>orange</figcaption></figure>
         <figure><img src="media/oraple_gaussian_4.jpg" alt="oraple gaussian 4"><figcaption>naive splice</figcaption></figure>
       </div>
 
-      <p class="row-label">Laplacian stack &mdash; level 0 (highest frequencies)</p>
+      <p class="row-label">Laplacian stack: level 0 (highest frequencies)</p>
       <div class="grid3">
         <figure><img src="media/apple_laplacian_0.jpg" alt="apple laplacian 0"><figcaption>apple</figcaption></figure>
         <figure><img src="media/orange_laplacian_0.jpg" alt="orange laplacian 0"><figcaption>orange</figcaption></figure>
         <figure><img src="media/oraple_laplacian_0.jpg" alt="oraple laplacian 0"><figcaption>naive splice</figcaption></figure>
       </div>
-      <p class="row-label">Laplacian stack &mdash; level 2</p>
+      <p class="row-label">Laplacian stack: level 2</p>
       <div class="grid3">
         <figure><img src="media/apple_laplacian_2.jpg" alt="apple laplacian 2"><figcaption>apple</figcaption></figure>
         <figure><img src="media/orange_laplacian_2.jpg" alt="orange laplacian 2"><figcaption>orange</figcaption></figure>
         <figure><img src="media/oraple_laplacian_2.jpg" alt="oraple laplacian 2"><figcaption>naive splice</figcaption></figure>
       </div>
-      <p class="row-label">Laplacian stack &mdash; level 5 (residual)</p>
+      <p class="row-label">Laplacian stack: level 5 (residual)</p>
       <div class="grid3">
         <figure><img src="media/apple_laplacian_5.jpg" alt="apple laplacian 5"><figcaption>apple</figcaption></figure>
         <figure><img src="media/orange_laplacian_5.jpg" alt="orange laplacian 5"><figcaption>orange</figcaption></figure>
@@ -416,7 +416,7 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
 
       <div class="discuss">
         <strong>Why the middle Laplacian levels look faint</strong>
-        Repeatedly blurring with the same kernel has diminishing returns &mdash; the effective
+        Repeatedly blurring with the same kernel has diminishing returns. The effective
         blur grows like the square root of the number of passes, so the jump from level 0 to 1
         adds far more smoothing than the jump from 3 to 4. The difference between two nearly
         converged levels is therefore small, which is why the later bands sit close to flat gray.
@@ -443,14 +443,14 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
         collapses it back into the final image.
       </p>
 
-      <p class="row-label">The oraple &mdash; vertical seam</p>
+      <p class="row-label">The oraple: vertical seam</p>
       <div class="grid3">
         <figure><img src="media/apple.jpeg" alt="apple"><figcaption>apple</figcaption></figure>
         <figure><img src="media/orange.jpeg" alt="orange"><figcaption>orange</figcaption></figure>
         <figure><img src="media/oraple_blended.jpg" alt="oraple blended"><figcaption>blended</figcaption></figure>
       </div>
 
-      <p class="row-label">Chess rooks &mdash; vertical seam</p>
+      <p class="row-label">Chess rooks: vertical seam</p>
       <div class="grid3">
         <figure><img src="media/rook_black.jpg" alt="black rook"><figcaption>black rook</figcaption></figure>
         <figure><img src="media/rook_white.jpg" alt="white rook"><figcaption>white rook</figcaption></figure>
@@ -460,12 +460,12 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
         Both rooks are identical in shape, so this isolates the color transition completely. It's
         also an unforgiving test: near-black against near-white on a flat white background gives
         the seam nowhere to hide. Sampling a horizontal slice through the body confirms there is
-        no step &mdash; brightness ramps smoothly from 0.27 to 0.87 across 80 pixels. Using a
+        no step: brightness ramps smoothly from 0.27 to 0.87 across 80 pixels. Using a
         wider mask blur made it worse, not better, by pulling both halves toward mid-gray and
         destroying the contrast that makes the image interesting.
       </p>
 
-      <p class="row-label">Soccer ball as the moon &mdash; irregular mask</p>
+      <p class="row-label">Soccer ball as the moon: irregular mask</p>
       <div class="grid4">
         <figure><img src="media/nightsky.jpg" alt="night sky"><figcaption>night sky</figcaption></figure>
         <figure><img src="media/soccer.jpg" alt="soccer ball"><figcaption>soccer ball</figcaption></figure>
@@ -484,24 +484,24 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
       <p>
         Left column is the apple weighted by the mask, middle is the orange weighted by the
         inverted mask, right is their sum. Each band is stretched to its own range so the
-        structure is visible &mdash; the higher bands have small amplitude and would otherwise
+        structure is visible. The higher bands have small amplitude and would otherwise
         render as flat gray. Zero maps to mid-gray under that normalization, which is why the
         masked-out half of each contribution appears neutral rather than black.
       </p>
 
-      <p class="row-label">Level 0 &mdash; high frequency</p>
+      <p class="row-label">Level 0: high frequency</p>
       <div class="grid3">
         <figure><img src="media/process_apple_0.jpg" alt="apple contribution level 0"><figcaption>apple &times; mask</figcaption></figure>
         <figure><img src="media/process_orange_0.jpg" alt="orange contribution level 0"><figcaption>orange &times; (1 &minus; mask)</figcaption></figure>
         <figure><img src="media/process_blended_0.jpg" alt="blended level 0"><figcaption>sum</figcaption></figure>
       </div>
-      <p class="row-label">Level 2 &mdash; medium frequency</p>
+      <p class="row-label">Level 2: medium frequency</p>
       <div class="grid3">
         <figure><img src="media/process_apple_2.jpg" alt="apple contribution level 2"><figcaption>apple &times; mask</figcaption></figure>
         <figure><img src="media/process_orange_2.jpg" alt="orange contribution level 2"><figcaption>orange &times; (1 &minus; mask)</figcaption></figure>
         <figure><img src="media/process_blended_2.jpg" alt="blended level 2"><figcaption>sum</figcaption></figure>
       </div>
-      <p class="row-label">Level 4 &mdash; low frequency</p>
+      <p class="row-label">Level 4: low frequency</p>
       <div class="grid3">
         <figure><img src="media/process_apple_4.jpg" alt="apple contribution level 4"><figcaption>apple &times; mask</figcaption></figure>
         <figure><img src="media/process_orange_4.jpg" alt="orange contribution level 4"><figcaption>orange &times; (1 &minus; mask)</figcaption></figure>
@@ -512,7 +512,7 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
         <strong>What I took away from this project</strong>
         The single most useful idea here is that an image is a sum of frequency bands you can
         manipulate independently. Sharpening, hybrid images and blending are all the same
-        machinery pointed in different directions &mdash; pull apart the bands, change their
+        machinery pointed in different directions: pull apart the bands, change their
         weights, add them back. The second lesson was practical: most of my bad results came from
         bad alignment or badly matched source images, not from the filtering, and no amount of
         parameter tuning fixes a pair of images that don't belong together.
