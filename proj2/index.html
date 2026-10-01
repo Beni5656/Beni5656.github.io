@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proj2 — Fun with Filters and Frequencies</title>
+  <link rel="stylesheet" href="../style.css">
+  <style>
+    /* proj2-only additions */
+    pre.code {
+      background: #f5f5f7;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin: 18px 0;
+    }
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin: 18px 0;
+    }
+    .grid3 figure { margin: 0; }
+    .grid4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+    .grid4 figure { margin: 0; }
+    .row-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      font-weight: 600;
+      margin: 20px 0 2px;
+    }
+    table.scores {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin: 18px 0 8px;
+    }
+    table.scores th,
+    table.scores td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: right;
+    }
+    table.scores th:first-child,
+    table.scores td:first-child {
+      text-align: left;
+      font-weight: 600;
+    }
+    table.scores thead th {
+      border-bottom: 2px solid var(--border);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    table.scores td.num { font-variant-numeric: tabular-nums; }
+    .table-scroll { overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="crumbs"><a href="../index.html">&larr; Portfolio</a></nav>
+
+    <header class="page-header">
+      <div class="eyebrow">CS180 · Programming Project #2</div>
+      <h1>Fun with Filters and Frequencies</h1>
+      <div class="meta">
+        Building 2D convolution from scratch, then using it for edge detection, image
+        sharpening, hybrid images, and multiresolution blending.
+      </div>
+    </header>
+
+    <!-- ================= PART 1.1 ================= -->
+    <section class="part" id="convolutions">
+      <h2><span class="part-label">Part 1.1</span>Convolutions from scratch</h2>
+      <p>
+        I wrote 2D convolution two ways. The first uses four nested loops &mdash; two over the
+        image, two over the kernel &mdash; accumulating one multiply at a time. The second keeps
+        the two image loops but replaces the inner pair with a single vectorized multiply over
+        the whole patch:
+      </p>
+
+      <pre class="code">patch = padded_image[img_h:img_h+kernel_height, img_w:img_w+kernel_width]
+output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
+
+      <p>
+        Both zero-pad by half the kernel size on each side so the output matches the input
+        dimensions, and both flip the kernel before sliding it, which is what separates
+        convolution from correlation. Checked against
+        <code>scipy.signal.convolve2d</code> with <code>mode='same'</code> on a random 20&times;20
+        array: all three agree to floating-point tolerance.
+      </p>
+
+      <div class="discuss">
+        <strong>Boundary handling</strong>
+        I pad with zeros. That darkens the outermost rows and columns slightly, since those
+        output pixels average real image data together with padded zeros. It's visible as a faint
+        dark border on the blurred results below.
+      </div>
+
+      <p>
+        Applied to a photo of myself, downscaled 4&times; first because a per-pixel Python loop on
+        the full 3088&times;2316 original is far too slow. Below: a 9&times;9 box blur, and the
+        finite difference operators <code>D<sub>x</sub> = [1, 0, &minus;1]</code> and its
+        transpose.
+      </p>
+
+      <div class="grid4">
+        <figure><img src="media/selfie_gray.jpg" alt="grayscale selfie"><figcaption>original (grayscale)</figcaption></figure>
+        <figure><img src="media/selfie_blurred.jpg" alt="box blurred selfie"><figcaption>9&times;9 box blur</figcaption></figure>
+        <figure><img src="media/selfie_dx.jpg" alt="dx of selfie"><figcaption>D<sub>x</sub></figcaption></figure>
+        <figure><img src="media/selfie_dy.jpg" alt="dy of selfie"><figcaption>D<sub>y</sub></figcaption></figure>
+      </div>
+    </section>
+
+    <!-- ================= PART 1.2 ================= -->
+    <section class="part" id="finitediff">
+      <h2><span class="part-label">Part 1.2</span>Finite difference operator</h2>
+      <p>
+        Convolving the cameraman with <code>D<sub>x</sub></code> and <code>D<sub>y</sub></code>
+        gives the partial derivatives in each direction. Each one only responds to edges running
+        perpendicular to it &mdash; <code>D<sub>x</sub></code> picks up the vertical tripod legs
+        and building edges, <code>D<sub>y</sub></code> picks up horizontal ones like the
+        horizon.
+      </p>
+      <p>
+        Combining them into the gradient magnitude
+        <code>sqrt(D<sub>x</sub>&sup2; + D<sub>y</sub>&sup2;)</code> gives an
+        orientation-independent measure of edge strength, which I then threshold to get a binary
+        edge map.
+      </p>
+
+      <div class="grid4">
+        <figure><img src="media/cameraman_dx.jpg" alt="cameraman dx"><figcaption>D<sub>x</sub></figcaption></figure>
+        <figure><img src="media/cameraman_dy.jpg" alt="cameraman dy"><figcaption>D<sub>y</sub></figcaption></figure>
+        <figure><img src="media/cameraman_gradient_magnitude.jpg" alt="gradient magnitude"><figcaption>gradient magnitude</figcaption></figure>
+        <figure><img src="media/cameraman_edges.jpg" alt="binarized edges"><figcaption>threshold = 0.2</figcaption></figure>
+      </div>
+
+      <div class="discuss">
+        <strong>Picking the threshold</strong>
+        0.2 was chosen by eye as the point that keeps the coat, tripod and skyline while
+        suppressing most of the grass. Lower values let a lot of grass noise through; higher
+        values start breaking the tripod legs into dashes. There isn't a clean separation &mdash;
+        the grass texture genuinely has gradient magnitudes comparable to the weaker real edges,
+        which is exactly the problem Part 1.3 addresses.
+      </div>
+    </section>
+
+    <!-- ================= PART 1.3 ================= -->
+    <section class="part" id="dog">
+      <h2><span class="part-label">Part 1.3</span>Derivative of Gaussian filter</h2>
+      <p>
+        Blurring first with a 9&times;9 Gaussian (&sigma; = 1.5) and then differentiating gives a
+        much cleaner result. The grass noise largely disappears, the remaining edges are thicker
+        and smoother, and the binary edge map holds together as continuous contours instead of
+        broken speckle.
+      </p>
+
+      <div class="grid4">
+        <figure><img src="media/cameraman_blurred.jpg" alt="blurred cameraman"><figcaption>Gaussian blurred</figcaption></figure>
+        <figure><img src="media/cameraman_blur_dx.jpg" alt="blurred dx"><figcaption>D<sub>x</sub> after blur</figcaption></figure>
+        <figure><img src="media/cameraman_blur_gradient_magnitude.jpg" alt="blurred gradient magnitude"><figcaption>gradient magnitude</figcaption></figure>
+        <figure><img src="media/cameraman_blur_edges.jpg" alt="blurred edges"><figcaption>threshold = 0.2</figcaption></figure>
+      </div>
+
+      <p>
+        The same result comes from a single convolution. Because convolution is associative,
+        convolving the Gaussian with <code>D<sub>x</sub></code> first produces a derivative-of-Gaussian
+        kernel that does both jobs in one pass:
+      </p>
+
+      <div class="figure-row">
+        <figure><img src="media/dog_x_kernel.jpg" alt="DoG x kernel"><figcaption>DoG kernel, x direction</figcaption></figure>
+        <figure><img src="media/dog_y_kernel.jpg" alt="DoG y kernel"><figcaption>DoG kernel, y direction</figcaption></figure>
+      </div>
+
+      <div class="discuss">
+        <strong>Verifying the two are equivalent</strong>
+        Comparing the one-step DoG result against the two-step blur-then-differentiate result
+        with <code>np.allclose</code> returns <code>True</code> &mdash; but only away from the
+        borders. Padding the raw image once makes different zero assumptions than padding the
+        already-blurred image a second time, so I exclude a margin of half the combined kernel
+        size on each side before comparing. The interiors match exactly.
+      </div>
+    </section>
+
+    <!-- ================= PART 2.1 ================= -->
+    <section class="part" id="sharpening">
+      <h2><span class="part-label">Part 2.1</span>Image sharpening</h2>
+      <p>
+        Unsharp masking works by isolating what a blur removes and adding it back amplified.
+        Low-pass the image to get <code>blurred</code>, subtract to get the high-frequency
+        detail, then add a scaled copy of that detail to the original:
+      </p>
+
+      <pre class="code">sharpened = f + alpha * (f - f*g) = (1 + alpha)*f - alpha*(f*g)</pre>
+
+      <p>
+        Since convolution is linear, this collapses into a <em>single</em> kernel: a scaled
+        impulse minus a scaled Gaussian, which I build as
+        <code>(1 + alpha) * impulse &minus; alpha * gaussian</code> and apply in one pass
+        per color channel.
+      </p>
+
+      <div class="grid3">
+        <figure><img src="media/taj.jpg" alt="taj original"><figcaption>original</figcaption></figure>
+        <figure><img src="media/taj_blurred.jpg" alt="taj blurred"><figcaption>low-pass (blurred)</figcaption></figure>
+        <figure><img src="media/taj_detail.jpg" alt="taj high frequency detail"><figcaption>high-frequency detail (shifted +0.5)</figcaption></figure>
+      </div>
+
+      <p class="row-label">Varying the sharpening amount</p>
+      <div class="grid3">
+        <figure><img src="media/taj_sharpened_alpha1.jpg" alt="taj alpha 1"><figcaption>alpha = 1</figcaption></figure>
+        <figure><img src="media/taj_sharpened_alpha2.jpg" alt="taj alpha 2"><figcaption>alpha = 2</figcaption></figure>
+        <figure><img src="media/taj_sharpened_alpha3.jpg" alt="taj alpha 3"><figcaption>alpha = 3</figcaption></figure>
+      </div>
+      <p>
+        Higher alpha gives progressively more contrast at edges. By alpha = 3 the masonry detail
+        is crisp, but halos start forming along high-contrast boundaries.
+      </p>
+
+      <p class="row-label">A second image</p>
+      <div class="figure-row">
+        <figure><img src="media/seal.jpeg" alt="seal original"><figcaption>original</figcaption></figure>
+        <figure><img src="media/seal_sharpened.jpg" alt="seal sharpened"><figcaption>sharpened, alpha = 3</figcaption></figure>
+      </div>
+      <p>
+        The whiskers, eye detail and nose edges all come up sharply. Worth noting the background
+        grid pattern also gets amplified &mdash; the source is a photo of a screen, and unsharp
+        masking boosts <em>all</em> high-frequency content, not just the detail you care about.
+      </p>
+
+      <p class="row-label">Sharpening a blurred image &mdash; the round trip</p>
+      <div class="grid3">
+        <figure><img src="media/cameraman_original.jpg" alt="cameraman original"><figcaption>original (sharp)</figcaption></figure>
+        <figure><img src="media/cameraman_blurred_for_roundtrip.jpg" alt="cameraman blurred"><figcaption>after Gaussian blur</figcaption></figure>
+        <figure><img src="media/cameraman_resharpened.jpg" alt="cameraman resharpened"><figcaption>re-sharpened, alpha = 2</figcaption></figure>
+      </div>
+
+      <div class="discuss">
+        <strong>Observation</strong>
+        Sharpening is not an inverse of blurring. The re-sharpened image is clearly crisper than
+        the blurred one &mdash; edges are boosted back &mdash; but it does not recover the
+        original. Unsharp masking can only re-amplify high-frequency content that <em>survived</em>
+        the blur; detail the Gaussian destroyed outright is gone and cannot be recreated. Fine
+        texture stays missing, and the strong edges that do come back show slight ringing from
+        the amplification.
+      </div>
+    </section>
+
+    <!-- ================= PART 2.2 ================= -->
+    <section class="part" id="hybrid">
+      <h2><span class="part-label">Part 2.2</span>Hybrid images</h2>
+      <p>
+        A hybrid image combines the high frequencies of one picture with the low frequencies of
+        another. Up close your eye resolves fine detail and sees the first image; from a distance
+        that detail is no longer resolvable and the blurred second image dominates. The
+        high-pass is <code>image &minus; blur(image, sigma1)</code>, the low-pass is
+        <code>blur(image, sigma2)</code>, and the hybrid is their sum.
+      </p>
+
+      <div class="discuss">
+        <strong>On alignment</strong>
+        The provided <code>align_images</code> recenters each image by zero-padding until the
+        eye midpoint is centered, then crops. For pairs with very different dimensions that
+        padding is large, and it left black bars and a visible diagonal seam in my results.
+        Instead I scale each image to a fixed target eye distance and crop a window around the
+        eye midpoint that <em>both</em> images can fill, so every output pixel comes from real
+        image data. For Derek and Nutmeg I fit a similarity transform to the two eye pairs, which
+        also handles rotation &mdash; necessary there because Nutmeg's head is tilted about 27&deg;
+        relative to Derek's.
+      </div>
+
+      <p class="row-label">Derek + Nutmeg &mdash; sigma1 = 4, sigma2 = 12</p>
+      <div class="grid3">
+        <figure><img src="media/derek_aligned.jpg" alt="derek aligned"><figcaption>high frequencies</figcaption></figure>
+        <figure><img src="media/nutmeg_aligned.jpg" alt="nutmeg aligned"><figcaption>low frequencies</figcaption></figure>
+        <figure><img src="media/hybrid_derek_nutmeg.jpg" alt="derek nutmeg hybrid"><figcaption>hybrid</figcaption></figure>
+      </div>
+
+      <p class="row-label">Seal + panda &mdash; sigma1 = 4, sigma2 = 12</p>
+      <div class="grid3">
+        <figure><img src="media/seal_aligned.jpg" alt="seal aligned"><figcaption>high frequencies</figcaption></figure>
+        <figure><img src="media/panda_aligned.jpg" alt="panda aligned"><figcaption>low frequencies</figcaption></figure>
+        <figure><img src="media/hybrid_seal_panda.jpg" alt="seal panda hybrid"><figcaption>hybrid</figcaption></figure>
+      </div>
+      <p>
+        This pair needed a compromise on scale. The seal's eyes are 360px apart against a head
+        2.2&times; that width; the panda's are 128px apart against a head 3.5&times; that width.
+        Matching eye distance exactly blew the panda up until its ears left the frame, so I scaled
+        it by the geometric mean of the eye-matched and head-matched scales.
+      </p>
+
+      <p class="row-label">Cat + apple-person &mdash; sigma1 = 6, sigma2 = 14 (favorite result)</p>
+      <div class="grid3">
+        <figure><img src="media/cat_aligned.jpg" alt="cat aligned"><figcaption>high frequencies</figcaption></figure>
+        <figure><img src="media/apple_person_aligned.jpg" alt="apple person aligned"><figcaption>low frequencies</figcaption></figure>
+        <figure><img src="media/hybrid_cat_apple.jpg" alt="cat apple hybrid"><figcaption>hybrid</figcaption></figure>
+      </div>
+      <p>
+        This is the strongest of the three, because the two images differ sharply in tone. The
+        apple-person is dark with a red face on a black hood; the cat is bright cream. That
+        contrast means the cat's whiskers read as bright strokes against a dark ground instead of
+        washing out, which is what happened when I tried pairing two similarly pale subjects.
+        Assignment matters too: the cat's identity lives in its whiskers and fur (high frequency)
+        while the apple-person's lives in a red circle inside a black hood (low frequency), so
+        putting each in its matching band is what makes the illusion work.
+      </p>
+
+      <p class="row-label">Frequency analysis of the favorite result</p>
+      <div class="grid3">
+        <figure><img src="media/fft_cat_input.jpg" alt="fft cat input"><figcaption>cat input</figcaption></figure>
+        <figure><img src="media/fft_apple_input.jpg" alt="fft apple input"><figcaption>apple-person input</figcaption></figure>
+        <figure><img src="media/fft_hybrid.jpg" alt="fft hybrid"><figcaption>hybrid</figcaption></figure>
+      </div>
+      <div class="figure-row">
+        <figure><img src="media/fft_cat_highpass.jpg" alt="fft cat highpass"><figcaption>cat, high-pass filtered</figcaption></figure>
+        <figure><img src="media/fft_apple_lowpass.jpg" alt="fft apple lowpass"><figcaption>apple-person, low-pass filtered</figcaption></figure>
+      </div>
+      <p>
+        These are log-magnitude Fourier transforms, all rendered on a shared color scale so they
+        can be compared directly. The two inputs show a bright concentration at the center,
+        confirming most of a natural image's energy is low-frequency. High-pass filtering removes
+        that center spike while leaving the outer region untouched; low-pass filtering does the
+        reverse, leaving a single bright point on black. The hybrid shows both: the center point
+        from the apple-person plus the diffuse outer spread from the cat.
+      </p>
+
+      <div class="table-scroll">
+        <table class="scores">
+          <thead>
+            <tr><th>Mean FFT magnitude</th><th>DC</th><th>r 0&ndash;5</th><th>r 5&ndash;15</th><th>r 15&ndash;40</th><th>r 40&ndash;100</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>cat input</td><td class="num">200,019</td><td class="num">8,500</td><td class="num">1,063</td><td class="num">203</td><td class="num">40</td></tr>
+            <tr><td>cat, high-passed</td><td class="num">2,740</td><td class="num">481</td><td class="num">252</td><td class="num">150</td><td class="num">38</td></tr>
+            <tr><td>apple-person input</td><td class="num">49,882</td><td class="num">5,760</td><td class="num">620</td><td class="num">127</td><td class="num">13</td></tr>
+            <tr><td>apple-person, low-passed</td><td class="num">49,227</td><td class="num">5,306</td><td class="num">265</td><td class="num">6</td><td class="num">0.8</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Numerically: the high-pass cut DC by 73&times; and the innermost ring by 18&times; while
+        leaving the r&nbsp;40&ndash;100 band essentially unchanged. The low-pass preserved DC and the
+        innermost ring while cutting r&nbsp;15&ndash;40 by 21&times;. Each filter removed exactly the
+        band it was supposed to.
+      </p>
+    </section>
+
+    <!-- ================= PART 2.3 ================= -->
+    <section class="part" id="stacks">
+      <h2><span class="part-label">Part 2.3</span>Gaussian and Laplacian stacks</h2>
+      <p>
+        A stack is a pyramid without the downsampling &mdash; every level stays at the original
+        resolution. Level 0 of the Gaussian stack is the input; each subsequent level is the
+        previous one blurred again with the same kernel (49&times;49, &sigma; = 8), so the blur
+        compounds. The Laplacian stack is the difference between consecutive Gaussian levels,
+        with the final level being the most-blurred Gaussian residual, so that summing the whole
+        Laplacian stack reconstructs the original exactly.
+      </p>
+      <p>
+        The "oraple" column here is the naive splice &mdash; the left half of the apple
+        concatenated to the right half of the orange with a hard cut &mdash; which is what
+        motivates the blending in Part 2.4.
+      </p>
+
+      <p class="row-label">Gaussian stack &mdash; level 0</p>
+      <div class="grid3">
+        <figure><img src="media/apple_gaussian_0.jpg" alt="apple gaussian 0"><figcaption>apple</figcaption></figure>
+        <figure><img src="media/orange_gaussian_0.jpg" alt="orange gaussian 0"><figcaption>orange</figcaption></figure>
+        <figure><img src="media/oraple_gaussian_0.jpg" alt="oraple gaussian 0"><figcaption>naive splice</figcaption></figure>
+      </div>
+      <p class="row-label">Gaussian stack &mdash; level 2</p>
+      <div class="grid3">
+        <figure><img src="media/apple_gaussian_2.jpg" alt="apple gaussian 2"><figcaption>apple</figcaption></figure>
+        <figure><img src="media/orange_gaussian_2.jpg" alt="orange gaussian 2"><figcaption>orange</figcaption></figure>
+        <figure><img src="media/oraple_gaussian_2.jpg" alt="oraple gaussian 2"><figcaption>naive splice</figcaption></figure>
+      </div>
+      <p class="row-label">Gaussian stack &mdash; level 4</p>
+      <div class="grid3">
+        <figure><img src="media/apple_gaussian_4.jpg" alt="apple gaussian 4"><figcaption>apple</figcaption></figure>
+        <figure><img src="media/orange_gaussian_4.jpg" alt="orange gaussian 4"><figcaption>orange</figcaption></figure>
+        <figure><img src="media/oraple_gaussian_4.jpg" alt="oraple gaussian 4"><figcaption>naive splice</figcaption></figure>
+      </div>
+
+      <p class="row-label">Laplacian stack &mdash; level 0 (highest frequencies)</p>
+      <div class="grid3">
+        <figure><img src="media/apple_laplacian_0.jpg" alt="apple laplacian 0"><figcaption>apple</figcaption></figure>
+        <figure><img src="media/orange_laplacian_0.jpg" alt="orange laplacian 0"><figcaption>orange</figcaption></figure>
+        <figure><img src="media/oraple_laplacian_0.jpg" alt="oraple laplacian 0"><figcaption>naive splice</figcaption></figure>
+      </div>
+      <p class="row-label">Laplacian stack &mdash; level 2</p>
+      <div class="grid3">
+        <figure><img src="media/apple_laplacian_2.jpg" alt="apple laplacian 2"><figcaption>apple</figcaption></figure>
+        <figure><img src="media/orange_laplacian_2.jpg" alt="orange laplacian 2"><figcaption>orange</figcaption></figure>
+        <figure><img src="media/oraple_laplacian_2.jpg" alt="oraple laplacian 2"><figcaption>naive splice</figcaption></figure>
+      </div>
+      <p class="row-label">Laplacian stack &mdash; level 5 (residual)</p>
+      <div class="grid3">
+        <figure><img src="media/apple_laplacian_5.jpg" alt="apple laplacian 5"><figcaption>apple</figcaption></figure>
+        <figure><img src="media/orange_laplacian_5.jpg" alt="orange laplacian 5"><figcaption>orange</figcaption></figure>
+        <figure><img src="media/oraple_laplacian_5.jpg" alt="oraple laplacian 5"><figcaption>naive splice</figcaption></figure>
+      </div>
+
+      <div class="discuss">
+        <strong>Why the middle Laplacian levels look faint</strong>
+        Repeatedly blurring with the same kernel has diminishing returns &mdash; the effective
+        blur grows like the square root of the number of passes, so the jump from level 0 to 1
+        adds far more smoothing than the jump from 3 to 4. The difference between two nearly
+        converged levels is therefore small, which is why the later bands sit close to flat gray.
+        It's also why the reference figure compares levels 0, 2 and 4 rather than consecutive
+        ones.
+      </div>
+    </section>
+
+    <!-- ================= PART 2.4 ================= -->
+    <section class="part" id="blending">
+      <h2><span class="part-label">Part 2.4</span>Multiresolution blending</h2>
+      <p>
+        The trick is to blend each frequency band over a different spatial distance: fine detail
+        switches over abruptly, broad color transitions over a wide region. That falls out
+        naturally from building a Laplacian stack for each image, a <em>Gaussian</em> stack for
+        the mask, and combining them level by level:
+      </p>
+
+      <pre class="code">blended_levels[i] = mask_stack[i] * lap_1[i] + (1 - mask_stack[i]) * lap_2[i]</pre>
+
+      <p>
+        Because the mask gets blurrier at each level alongside the images, the coarse bands get a
+        wide transition while the finest band keeps a sharp one. Summing the blended stack
+        collapses it back into the final image.
+      </p>
+
+      <p class="row-label">The oraple &mdash; vertical seam</p>
+      <div class="grid3">
+        <figure><img src="media/apple.jpeg" alt="apple"><figcaption>apple</figcaption></figure>
+        <figure><img src="media/orange.jpeg" alt="orange"><figcaption>orange</figcaption></figure>
+        <figure><img src="media/oraple_blended.jpg" alt="oraple blended"><figcaption>blended</figcaption></figure>
+      </div>
+
+      <p class="row-label">Chess rooks &mdash; vertical seam</p>
+      <div class="grid3">
+        <figure><img src="media/rook_black.jpg" alt="black rook"><figcaption>black rook</figcaption></figure>
+        <figure><img src="media/rook_white.jpg" alt="white rook"><figcaption>white rook</figcaption></figure>
+        <figure><img src="media/rook_blended.jpg" alt="blended rook"><figcaption>blended</figcaption></figure>
+      </div>
+      <p>
+        Both rooks are identical in shape, so this isolates the color transition completely. It's
+        also an unforgiving test: near-black against near-white on a flat white background gives
+        the seam nowhere to hide. Sampling a horizontal slice through the body confirms there is
+        no step &mdash; brightness ramps smoothly from 0.27 to 0.87 across 80 pixels. Using a
+        wider mask blur made it worse, not better, by pulling both halves toward mid-gray and
+        destroying the contrast that makes the image interesting.
+      </p>
+
+      <p class="row-label">Soccer ball as the moon &mdash; irregular mask</p>
+      <div class="grid4">
+        <figure><img src="media/nightsky.jpg" alt="night sky"><figcaption>night sky</figcaption></figure>
+        <figure><img src="media/soccer.jpg" alt="soccer ball"><figcaption>soccer ball</figcaption></figure>
+        <figure><img src="media/moon_mask.jpg" alt="circular mask"><figcaption>circular mask</figcaption></figure>
+        <figure><img src="media/moon_blended.jpg" alt="moon blended"><figcaption>blended</figcaption></figure>
+      </div>
+      <p>
+        The mask is found automatically rather than hardcoded: everything darker than 0.92 against
+        the ball's white backdrop is the ball, which gives its bounding box and from that its
+        center and radius. The circle is pulled 2px inside the rim so the white background doesn't
+        get dragged into the dark sky. A small amount still bleeds through at the transition, but
+        against a night sky that reads as atmospheric glow rather than as an artifact.
+      </p>
+
+      <p class="row-label">The process, level by level</p>
+      <p>
+        Left column is the apple weighted by the mask, middle is the orange weighted by the
+        inverted mask, right is their sum. Each band is stretched to its own range so the
+        structure is visible &mdash; the higher bands have small amplitude and would otherwise
+        render as flat gray. Zero maps to mid-gray under that normalization, which is why the
+        masked-out half of each contribution appears neutral rather than black.
+      </p>
+
+      <p class="row-label">Level 0 &mdash; high frequency</p>
+      <div class="grid3">
+        <figure><img src="media/process_apple_0.jpg" alt="apple contribution level 0"><figcaption>apple &times; mask</figcaption></figure>
+        <figure><img src="media/process_orange_0.jpg" alt="orange contribution level 0"><figcaption>orange &times; (1 &minus; mask)</figcaption></figure>
+        <figure><img src="media/process_blended_0.jpg" alt="blended level 0"><figcaption>sum</figcaption></figure>
+      </div>
+      <p class="row-label">Level 2 &mdash; medium frequency</p>
+      <div class="grid3">
+        <figure><img src="media/process_apple_2.jpg" alt="apple contribution level 2"><figcaption>apple &times; mask</figcaption></figure>
+        <figure><img src="media/process_orange_2.jpg" alt="orange contribution level 2"><figcaption>orange &times; (1 &minus; mask)</figcaption></figure>
+        <figure><img src="media/process_blended_2.jpg" alt="blended level 2"><figcaption>sum</figcaption></figure>
+      </div>
+      <p class="row-label">Level 4 &mdash; low frequency</p>
+      <div class="grid3">
+        <figure><img src="media/process_apple_4.jpg" alt="apple contribution level 4"><figcaption>apple &times; mask</figcaption></figure>
+        <figure><img src="media/process_orange_4.jpg" alt="orange contribution level 4"><figcaption>orange &times; (1 &minus; mask)</figcaption></figure>
+        <figure><img src="media/process_blended_4.jpg" alt="blended level 4"><figcaption>sum</figcaption></figure>
+      </div>
+
+      <div class="discuss">
+        <strong>What I took away from this project</strong>
+        The single most useful idea here is that an image is a sum of frequency bands you can
+        manipulate independently. Sharpening, hybrid images and blending are all the same
+        machinery pointed in different directions &mdash; pull apart the bands, change their
+        weights, add them back. The second lesson was practical: most of my bad results came from
+        bad alignment or badly matched source images, not from the filtering, and no amount of
+        parameter tuning fixes a pair of images that don't belong together.
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      &copy; 2026 Beni Michel · CS180 Project 2
+    </footer>
+  </div>
+</body>
+</html>

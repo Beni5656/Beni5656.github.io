@@ -16,3 +16,9 @@ run_log.txt
 
 # never publish the solution code -- Gradescope only
 proj1/color_images.py
+proj2/*.py
+proj2/README.txt
+
+# Full-res source photo for the Part 1.1 selfie results (2.5 MB). The page only
+# shows the downscaled grayscale versions, which are committed.
+proj2/media/IMG_4227.jpeg
