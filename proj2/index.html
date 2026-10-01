@@ -39,33 +39,6 @@
       font-weight: 600;
       margin: 20px 0 2px;
     }
-    table.scores {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.88rem;
-      margin: 18px 0 8px;
-    }
-    table.scores th,
-    table.scores td {
-      padding: 7px 10px;
-      border-bottom: 1px solid var(--border);
-      text-align: right;
-    }
-    table.scores th:first-child,
-    table.scores td:first-child {
-      text-align: left;
-      font-weight: 600;
-    }
-    table.scores thead th {
-      border-bottom: 2px solid var(--border);
-      color: var(--muted);
-      font-weight: 600;
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    table.scores td.num { font-variant-numeric: tabular-nums; }
-    .table-scroll { overflow-x: auto; }
   </style>
 </head>
 <body>
@@ -337,26 +310,6 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
         reverse, leaving a single bright point on black. The hybrid shows both: the center point
         from the apple-person plus the diffuse outer spread from the cat.
       </p>
-
-      <div class="table-scroll">
-        <table class="scores">
-          <thead>
-            <tr><th>Mean FFT magnitude</th><th>DC</th><th>r 0 to 5</th><th>r 5 to 15</th><th>r 15 to 40</th><th>r 40 to 100</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>cat input</td><td class="num">200,019</td><td class="num">8,500</td><td class="num">1,063</td><td class="num">203</td><td class="num">40</td></tr>
-            <tr><td>cat, high-passed</td><td class="num">2,740</td><td class="num">481</td><td class="num">252</td><td class="num">150</td><td class="num">38</td></tr>
-            <tr><td>apple-person input</td><td class="num">49,882</td><td class="num">5,760</td><td class="num">620</td><td class="num">127</td><td class="num">13</td></tr>
-            <tr><td>apple-person, low-passed</td><td class="num">49,227</td><td class="num">5,306</td><td class="num">265</td><td class="num">6</td><td class="num">0.8</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p>
-        Numerically: the high-pass cut DC by 73&times; and the innermost ring by 18&times; while
-        leaving the r&nbsp;40 to 100 band essentially unchanged. The low-pass preserved DC and the
-        innermost ring while cutting r&nbsp;15 to 40 by 21&times;. Each filter removed exactly the
-        band it was supposed to.
-      </p>
     </section>
 
     <!-- ================= PART 2.3 ================= -->
@@ -459,10 +412,10 @@ output[img_h, img_w] = np.sum(patch * flipped_kernel)</pre>
       <p>
         Both rooks are identical in shape, so this isolates the color transition completely. It's
         also an unforgiving test: near-black against near-white on a flat white background gives
-        the seam nowhere to hide. Sampling a horizontal slice through the body confirms there is
-        no step, brightness ramps smoothly from 0.27 to 0.87 across 80 pixels. Using a
-        wider mask blur made it worse, not better, by pulling both halves toward mid-gray and
-        destroying the contrast that makes the image interesting.
+        the seam nowhere to hide, and there isn't one visible, the gray transitions smoothly from
+        black to white instead of showing a hard edge. I also tried a wider mask blur, which made
+        it worse, not better, by pulling both halves toward mid-gray and destroying the contrast
+        that makes the image interesting.
       </p>
 
       <p class="row-label">Soccer ball as the moon, irregular mask</p>
