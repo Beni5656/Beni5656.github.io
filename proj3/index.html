@@ -32,6 +32,19 @@
       margin: 18px 0;
     }
     .grid3 figure { margin: 0; }
+    .hybrid-pair {
+      display: flex;
+      gap: 24px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      margin: 18px 0;
+    }
+    .hybrid-pair figure { margin: 0; }
+    .hybrid-pair .big { flex: 1 1 240px; max-width: 300px; }
+    #hybrids { break-inside: avoid; }
+    .part-heading { break-after: avoid; }
+    .hybrid-pair .small img { width: 64px; }
+    .hybrid-pair .small figcaption { max-width: 120px; text-align: left; }
     .part-heading {
       font-size: 1.6rem;
       margin: 56px 0 20px;
@@ -217,9 +230,13 @@
     <!-- ================= PART 3.4 ================= -->
     <section class="part" id="hybrids">
       <h2><span class="part-label">Part 3.4</span>Hybrid images</h2>
-      <div class="grid2">
-        <figure><img src="media/hybrid_0.jpg" alt="skull / waterfall hybrid"><figcaption>Far: "a lithograph of a skull" / close: "a lithograph of a waterfall"</figcaption></figure>
-        <figure><img src="media/hybrid_1.jpg" alt="cat / forest hybrid"><figcaption>Far: "a lithograph of a cat" / close: "a lithograph of a forest"</figcaption></figure>
+      <div class="hybrid-pair">
+        <figure class="big"><img src="media/hybrid_0.jpg" alt="skull / waterfall hybrid"><figcaption>Close: "a lithograph of a waterfall"</figcaption></figure>
+        <figure class="small"><img src="media/hybrid_0_small.png" alt="skull / waterfall hybrid, far view"><figcaption>Far: "a lithograph of a skull"</figcaption></figure>
+      </div>
+      <div class="hybrid-pair">
+        <figure class="big"><img src="media/hybrid_1.jpg" alt="cat / forest hybrid"><figcaption>Close: "a lithograph of a forest"</figcaption></figure>
+        <figure class="small"><img src="media/hybrid_1_small.png" alt="cat / forest hybrid, far view"><figcaption>Far: "a lithograph of a cat"</figcaption></figure>
       </div>
     </section>
 
