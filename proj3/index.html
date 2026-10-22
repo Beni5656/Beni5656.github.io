@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proj3: Flow Matching</title>
+  <link rel="stylesheet" href="../style.css">
+  <style>
+    /* proj3-only additions */
+    .stack figure { margin: 18px 0; }
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+    .grid2 figure { margin: 0; }
+    .row-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      font-weight: 600;
+      margin: 24px 0 2px;
+    }
+    .single { max-width: 360px; margin: 18px auto; }
+    .medium { max-width: 560px; margin: 18px auto; }
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+    .grid3 figure { margin: 0; }
+    .part-heading {
+      font-size: 1.6rem;
+      margin: 56px 0 20px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="crumbs"><a href="../index.html">&larr; Portfolio</a></nav>
+
+    <header class="page-header">
+      <div class="eyebrow">CS180 · Programming Project #3</div>
+      <h1>Flow Matching</h1>
+    </header>
+
+    <h2 class="part-heading">Part A: The Power of Flow Models</h2>
+
+    <!-- ================= PART 1.1 ================= -->
+    <section class="part" id="training-inputs">
+      <h2><span class="part-label">Part 1.1</span>Constructing noisy training inputs</h2>
+      <p>
+        I used a photo of a church facade, cropped to 512&times;512, and noised it with
+        <i>x<sub>t</sub></i> = (1 &minus; <i>t</i>)&epsilon; + <i>t x</i><sub>1</sub>, using the
+        same noise sample at every time.
+      </p>
+      <figure><img src="media/training_inputs.jpg" alt="original and noisy images"><figcaption>Original, then <i>t</i> = 0.25, 0.50, 0.75</figcaption></figure>
+    </section>
+
+    <!-- ================= PART 1.2 ================= -->
+    <section class="part" id="blur">
+      <h2><span class="part-label">Part 1.2</span>Classical denoising</h2>
+      <p>
+        I divided <i>x<sub>t</sub></i> by <i>t</i> and applied a Gaussian blur, keeping the
+        &sigma; that came closest to the original.
+      </p>
+      <div class="stack">
+        <figure><img src="media/blur_0.25.jpg" alt="blur at t = 0.25"><figcaption><i>t</i> = 0.25</figcaption></figure>
+        <figure><img src="media/blur_0.5.jpg" alt="blur at t = 0.5"><figcaption><i>t</i> = 0.50</figcaption></figure>
+        <figure><img src="media/blur_0.75.jpg" alt="blur at t = 0.75"><figcaption><i>t</i> = 0.75</figcaption></figure>
+      </div>
+    </section>
+
+    <!-- ================= PART 1.3 ================= -->
+    <section class="part" id="one-step">
+      <h2><span class="part-label">Part 1.3</span>One-step denoising</h2>
+      <p>
+        One-step estimate <i>x&#770;</i><sub>1</sub> = <i>x<sub>t</sub></i> + (1 &minus; <i>t</i>)<i>v</i><sub>&theta;</sub>(<i>x<sub>t</sub></i>, <i>t</i>, <i>c</i>)
+        with the prompt "a high quality photo".
+      </p>
+      <div class="stack">
+        <figure><img src="media/one_step_0.25.jpg" alt="one-step at t = 0.25"><figcaption><i>t</i> = 0.25</figcaption></figure>
+        <figure><img src="media/one_step_0.5.jpg" alt="one-step at t = 0.5"><figcaption><i>t</i> = 0.50</figcaption></figure>
+        <figure><img src="media/one_step_0.75.jpg" alt="one-step at t = 0.75"><figcaption><i>t</i> = 0.75</figcaption></figure>
+      </div>
+    </section>
+
+    <!-- ================= PART 1.4 ================= -->
+    <section class="part" id="velocity">
+      <h2><span class="part-label">Part 1.4</span>Visualizing velocity</h2>
+      <p>
+        Predicted update (1 &minus; <i>t</i>)<i>v&#770;<sub>t</sub></i>, ground truth update
+        (1 &minus; <i>t</i>)<i>v</i><sub>gt</sub> with <i>v</i><sub>gt</sub> = <i>x</i><sub>1</sub> &minus; &epsilon;,
+        and the per-pixel RGB RMS error between them. Both updates use the same symmetric color
+        scale with zero at gray, and the error maps use the same limits at all three times.
+      </p>
+      <div class="single">
+        <figure><img src="media/velocity_original.jpg" alt="original image"><figcaption>Original</figcaption></figure>
+      </div>
+      <div class="stack">
+        <figure><img src="media/velocity_0.25.jpg" alt="velocity at t = 0.25"><figcaption><i>t</i> = 0.25</figcaption></figure>
+        <figure><img src="media/velocity_0.50.jpg" alt="velocity at t = 0.50"><figcaption><i>t</i> = 0.50</figcaption></figure>
+        <figure><img src="media/velocity_0.75.jpg" alt="velocity at t = 0.75"><figcaption><i>t</i> = 0.75</figcaption></figure>
+      </div>
+      <p>
+        The predicted update gets the overall structure right at every time, like the doorway,
+        columns, and steps. What it misses is fine detail. The error shows up along edges, the
+        statues, and the door panels, which is the stuff the noise wiped out. At <i>t</i> = 0.25
+        the prediction is noticeably smoother than the ground truth, and by <i>t</i> = 0.75 the
+        two are almost the same and the error map is mostly dark.
+      </p>
+    </section>
+
+    <!-- ================= PART 1.5 ================= -->
+    <section class="part" id="euler">
+      <h2><span class="part-label">Part 1.5</span>Iterative denoising with Euler sampling</h2>
+      <p>
+        Euler sampling with <i>h</i> = 0.02, starting from the <i>t</i> = 0.50 noisy image
+        (25 updates). I tested the sampler on a constant velocity field, including a start time
+        where the last step gets shortened, and it ended exactly at <i>t</i> = 1 with the
+        expected values each time.
+      </p>
+      <div class="stack">
+        <figure><img src="media/trajectory.jpg" alt="Euler trajectory"><figcaption>Initial state, every fifth update, and the final image</figcaption></figure>
+        <figure><img src="media/comparison.jpg" alt="comparison"><figcaption>Original, Gaussian blur, one-step, Euler (all from <i>t</i> = 0.50)</figcaption></figure>
+      </div>
+      <p>
+        The Gaussian blur is by far the worst, it's still noisy and all the detail is gone. The
+        one-step result gets the building back but looks smooth and a little soft. The Euler
+        result looks the most like a real photo, with sharp stone texture, statues, and steps.
+        It doesn't match the original exactly though, since some details like the statues are
+        made up by the model instead of recovered.
+      </p>
+    </section>
+
+    <!-- ================= PART 1.6 ================= -->
+    <section class="part" id="from-noise">
+      <h2><span class="part-label">Part 1.6</span>Generating images from noise</h2>
+      <figure><img src="media/conditional_samples.jpg" alt="five samples"><figcaption>"a high quality photo", no guidance</figcaption></figure>
+      <p>
+        Every sample is a portrait of a person on a plain background, so the generic prompt
+        clearly favors people. The quality is hit or miss though. Seeds 182 and 184 look real,
+        but 180 has no face and 181 and 183 have smeared, distorted skin.
+      </p>
+    </section>
+
+    <!-- ================= PART 2.1 ================= -->
+    <section class="part" id="cfg">
+      <h2><span class="part-label">Part 2.1</span>Classifier-free guidance</h2>
+      <p>
+        <i>v</i><sub>cfg</sub> = <i>v<sub>c</sub></i> + <i>w</i>(<i>v<sub>c</sub></i> &minus; <i>v<sub>u</sub></i>)
+        with <i>w</i> = 7 and "" as the unconditional prompt. Setting <i>w</i> = 0 gives back the
+        conditional prediction. Same starting noise as 1.6.
+      </p>
+      <figure><img src="media/cfg_samples.jpg" alt="five CFG samples"><figcaption>"a high quality photo", <i>w</i> = 7</figcaption></figure>
+      <p>
+        With guidance every face comes out clean and sharp, including the three that were broken
+        before, and the contrast is much higher. Each one still loosely matches its unguided
+        version (seed 182 keeps the hand by the face). The downside is that they look more alike,
+        with similar poses and plain dark or light backgrounds.
+      </p>
+    </section>
+
+    <!-- ================= PART 3.1 ================= -->
+    <section class="part" id="sdedit">
+      <h2><span class="part-label">Part 3.1</span>Image-to-image editing</h2>
+
+      <div class="row-label">Campanile</div>
+      <figure><img src="media/edit_campanile.jpg" alt="Campanile edits"></figure>
+
+      <div class="row-label">My image 1</div>
+      <figure><img src="media/edit_my_image_1.jpg" alt="church edits"></figure>
+
+      <div class="row-label">My image 2</div>
+      <figure><img src="media/edit_my_image_2.jpg" alt="Eiffel Tower edits"></figure>
+
+      <div class="row-label">Web image</div>
+      <figure><img src="media/edit_web_image.jpg" alt="Pisa edits"></figure>
+
+      <div class="row-label">Hand-drawn image 1</div>
+      <figure><img src="media/edit_drawing_1.jpg" alt="house drawing edits"></figure>
+      <figure><img src="media/edit_drawing_1_extra.jpg" alt="house drawing extra edits"><figcaption>Extra starting times</figcaption></figure>
+
+      <div class="row-label">Hand-drawn image 2</div>
+      <figure><img src="media/edit_drawing_2.jpg" alt="flower drawing edits"></figure>
+      <figure><img src="media/edit_drawing_2_extra.jpg" alt="flower drawing extra edits"><figcaption>Extra starting times</figcaption></figure>
+    </section>
+
+    <!-- ================= PART 3.2 ================= -->
+    <section class="part" id="text-edit">
+      <h2><span class="part-label">Part 3.2</span>Text-guided image editing</h2>
+
+      <div class="row-label">Campanile: "a photograph of a lamp"</div>
+      <figure><img src="media/text_edit_campanile.jpg" alt="Campanile to lamp"></figure>
+
+      <div class="row-label">My image 1: "a photograph of a castle"</div>
+      <figure><img src="media/text_edit_my_image_1.jpg" alt="church to castle"></figure>
+
+      <div class="row-label">My image 2: "a photograph of a Christmas tree"</div>
+      <figure><img src="media/text_edit_my_image_2.jpg" alt="Eiffel Tower to Christmas tree"></figure>
+    </section>
+
+    <!-- ================= PART 3.3 ================= -->
+    <section class="part" id="anagrams">
+      <h2><span class="part-label">Part 3.3</span>Visual anagrams</h2>
+      <div class="grid2">
+        <figure><img src="media/anagram_views_0.jpg" alt="old man / campfire anagram"><figcaption>"an oil painting of an old man" / flipped: "an oil painting of people around a campfire"</figcaption></figure>
+        <figure><img src="media/anagram_views_1.jpg" alt="village / horse anagram"><figcaption>"a lithograph of a snowy mountain village" / flipped: "a lithograph of a horse"</figcaption></figure>
+      </div>
+    </section>
+
+    <!-- ================= PART 3.4 ================= -->
+    <section class="part" id="hybrids">
+      <h2><span class="part-label">Part 3.4</span>Hybrid images</h2>
+      <div class="grid2">
+        <figure><img src="media/hybrid_0.jpg" alt="skull / waterfall hybrid"><figcaption>Far: "a lithograph of a skull" / close: "a lithograph of a waterfall"</figcaption></figure>
+        <figure><img src="media/hybrid_1.jpg" alt="cat / forest hybrid"><figcaption>Far: "a lithograph of a cat" / close: "a lithograph of a forest"</figcaption></figure>
+      </div>
+    </section>
+
+    <h2 class="part-heading">Part B: Flow Matching from Scratch</h2>
+
+    <!-- ================= PART B 1.2 ================= -->
+    <section class="part" id="b-noising">
+      <h2><span class="part-label">Part 1.2</span>Noising process</h2>
+      <p>
+        <i>z</i> = <i>x</i> + &sigma;&epsilon; on MNIST test digits. Each row is one &sigma;, from
+        top to bottom: 0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0.
+      </p>
+      <div class="medium">
+        <figure><img src="media/b_noise_levels.png" alt="noising process"></figure>
+      </div>
+    </section>
+
+    <!-- ================= PART B 1.2.1 ================= -->
+    <section class="part" id="b-denoiser">
+      <h2><span class="part-label">Part 1.2.1</span>Training a denoiser</h2>
+      <p>
+        UNet with <i>D</i> = 128 trained to denoise at &sigma; = 0.5 for 5 epochs, batch size 256,
+        Adam with learning rate 1e-4, with fresh noise every batch.
+      </p>
+      <figure><img src="media/b_denoise_sigma0.5_loss.png" alt="training loss"><figcaption>Training loss</figcaption></figure>
+      <div class="stack">
+        <figure><img src="media/b_denoise_epoch1.png" alt="results after epoch 1"><figcaption>After epoch 1: original, noisy, denoised</figcaption></figure>
+        <figure><img src="media/b_denoise_epoch5.png" alt="results after epoch 5"><figcaption>After epoch 5: original, noisy, denoised</figcaption></figure>
+      </div>
+    </section>
+
+    <!-- ================= PART B 1.2.2 ================= -->
+    <section class="part" id="b-ood">
+      <h2><span class="part-label">Part 1.2.2</span>Out-of-distribution testing</h2>
+      <p>
+        The &sigma; = 0.5 denoiser on the same test digit at &sigma; = 0.0, 0.2, 0.4, 0.5, 0.6, 0.8,
+        1.0 (left to right). Top row is the noisy input, bottom row is the output.
+      </p>
+      <figure><img src="media/b_ood_testing.png" alt="out-of-distribution testing"></figure>
+    </section>
+
+    <!-- ================= PART B 1.2.3 ================= -->
+    <section class="part" id="b-pure-noise">
+      <h2><span class="part-label">Part 1.2.3</span>Denoising pure noise</h2>
+      <p>Same setup as 1.2.1, but the input is pure noise <i>z</i> = &epsilon;.</p>
+      <figure><img src="media/b_pure_noise_loss.png" alt="pure noise training loss"><figcaption>Training loss</figcaption></figure>
+      <div class="stack">
+        <figure><img src="media/b_pure_noise_epoch1.png" alt="pure noise epoch 1"><figcaption>After epoch 1</figcaption></figure>
+        <figure><img src="media/b_pure_noise_epoch5.png" alt="pure noise epoch 5"><figcaption>After epoch 5</figcaption></figure>
+      </div>
+      <p>
+        Every output is the same blurry blob, no matter what noise goes in. It doesn't look like
+        any one digit. It looks like a bunch of digits stacked on top of each other: you can make
+        out a 0 shaped outline with hints of a 3, 8, and 9 in the middle. After epoch 5 it's
+        basically the same image, just smoother.
+      </p>
+      <p>
+        This happens because the input has no information about which digit the target is. The
+        noise is independent of the image, so the best the model can do under MSE is output the
+        one image that minimizes the average squared distance to all training digits, which is
+        their mean (the centroid). That's why it looks like an average of all the classes 0 to 9,
+        weighted by how often each stroke shows up, and why the loss flattens out early and stops
+        improving.
+      </p>
+    </section>
+
+    <!-- ================= PART B 2.2 ================= -->
+    <section class="part" id="b-time-train">
+      <h2><span class="part-label">Part 2.2</span>Training the time-conditioned UNet</h2>
+      <p>
+        <i>D</i> = 64, batch size 64, 10 epochs, Adam with initial learning rate 1e-2 and an
+        exponential decay of 0.1<sup>1/10</sup> per epoch.
+      </p>
+      <figure><img src="media/b_time_conditioned_loss.png" alt="time-conditioned training loss"><figcaption>Training loss</figcaption></figure>
+    </section>
+
+    <!-- ================= PART B 2.3 ================= -->
+    <section class="part" id="b-time-sample">
+      <h2><span class="part-label">Part 2.3</span>Sampling from the time-conditioned UNet</h2>
+      <div class="grid3">
+        <figure><img src="media/b_time_epoch1.png" alt="time-conditioned epoch 1"><figcaption>Epoch 1</figcaption></figure>
+        <figure><img src="media/b_time_epoch5.png" alt="time-conditioned epoch 5"><figcaption>Epoch 5</figcaption></figure>
+        <figure><img src="media/b_time_epoch10.png" alt="time-conditioned epoch 10"><figcaption>Epoch 10</figcaption></figure>
+      </div>
+    </section>
+
+    <!-- ================= PART B 2.5 ================= -->
+    <section class="part" id="b-class-train">
+      <h2><span class="part-label">Part 2.5</span>Training the class-conditioned UNet</h2>
+      <p>
+        Same setup as 2.2, plus a one-hot class vector that gets dropped (set to 0) 10% of the time.
+      </p>
+      <figure><img src="media/b_class_conditioned_loss.png" alt="class-conditioned training loss"><figcaption>Training loss</figcaption></figure>
+    </section>
+
+    <!-- ================= PART B 2.6 ================= -->
+    <section class="part" id="b-class-sample">
+      <h2><span class="part-label">Part 2.6</span>Sampling from the class-conditioned UNet</h2>
+      <p>Classifier-free guidance with &gamma; = 5.0. Each row is one digit, 0 to 9.</p>
+      <div class="grid3">
+        <figure><img src="media/b_class_epoch1.png" alt="class-conditioned epoch 1"><figcaption>Epoch 1</figcaption></figure>
+        <figure><img src="media/b_class_epoch5.png" alt="class-conditioned epoch 5"><figcaption>Epoch 5</figcaption></figure>
+        <figure><img src="media/b_class_epoch10.png" alt="class-conditioned epoch 10"><figcaption>Epoch 10</figcaption></figure>
+      </div>
+
+      <h3>Without the learning rate scheduler</h3>
+      <p>
+        To make up for removing the scheduler, I trained with a constant learning rate of 1e-3
+        instead of starting at 1e-2. Without the decay, 1e-2 would stay high for the whole run and
+        make the end of training noisy, so I picked a smaller value close to where the scheduled
+        run ends up by the last epoch. Everything else is the same.
+      </p>
+      <figure><img src="media/b_class_conditioned_no_scheduler_loss.png" alt="no scheduler training loss"><figcaption>Training loss, no scheduler</figcaption></figure>
+      <div class="single">
+        <figure><img src="media/b_class_no_scheduler.png" alt="no scheduler samples"><figcaption>Samples after epoch 10, no scheduler</figcaption></figure>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      &copy; 2026 Beni Michel
+    </footer>
+  </div>
+</body>
+</html>
