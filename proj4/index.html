@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proj4: Image Warping and Mosaicing</title>
+  <link rel="stylesheet" href="../style.css">
+  <style>
+    /* proj4-only additions */
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+    .grid2 figure { margin: 0; }
+    .stack figure { margin: 18px 0; }
+    .part-heading {
+      font-size: 1.6rem;
+      margin: 56px 0 20px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+      break-after: avoid;
+    }
+    pre.mat {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+    }
+    .row-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      font-weight: 600;
+      margin: 24px 0 2px;
+    }
+    .eq { text-align: center; margin: 14px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="crumbs"><a href="../index.html">&larr; Portfolio</a></nav>
+
+    <header class="page-header">
+      <div class="eyebrow">CS180 · Programming Project #4</div>
+      <h1>Image Warping and Mosaicing</h1>
+    </header>
+
+    <h2 class="part-heading">Part A</h2>
+
+    <!-- ================= A.2 ================= -->
+    <section class="part" id="homographies">
+      <h2><span class="part-label">A.2</span>Recovering homographies</h2>
+      <p>
+        A homography maps <i>p</i>&prime; = <i>Hp</i>, with <i>H</i> = [[<i>h</i><sub>1</sub>, <i>h</i><sub>2</sub>, <i>h</i><sub>3</sub>],
+        [<i>h</i><sub>4</sub>, <i>h</i><sub>5</sub>, <i>h</i><sub>6</sub>], [<i>h</i><sub>7</sub>, <i>h</i><sub>8</sub>, 1]].
+        Each correspondence (<i>x</i>, <i>y</i>) &rarr; (<i>x</i>&prime;, <i>y</i>&prime;) gives two linear equations after
+        clearing the denominator:
+      </p>
+      <div class="eq">
+        <i>h</i><sub>1</sub><i>x</i> + <i>h</i><sub>2</sub><i>y</i> + <i>h</i><sub>3</sub> &minus; <i>h</i><sub>7</sub><i>xx</i>&prime; &minus; <i>h</i><sub>8</sub><i>yx</i>&prime; = <i>x</i>&prime;<br>
+        <i>h</i><sub>4</sub><i>x</i> + <i>h</i><sub>5</sub><i>y</i> + <i>h</i><sub>6</sub> &minus; <i>h</i><sub>7</sub><i>xy</i>&prime; &minus; <i>h</i><sub>8</sub><i>yy</i>&prime; = <i>y</i>&prime;
+      </div>
+      <p>
+        With <i>n</i> correspondences, stacking these gives a 2<i>n</i>&times;8 system <i>Ah</i> = <i>b</i> (24&times;8 for the
+        gateway and glass pairs with 12 points, 28&times;8 for gianni with 14), which I solved with least squares. The points below are the ones I clicked.
+      </p>
+
+      <div class="stack">
+        <figure><img src="media/gatewaybuilding1_gatewaybuilding2_points.jpg" alt="gateway correspondences"><figcaption>Gateway</figcaption></figure>
+<pre class="mat">[[ 0.73818  -0.53699  1383.69038]
+ [ 0.52299   0.81146  -728.89169]
+ [-0.00002   0.00001     1.0    ]]    mean error 8.10 px</pre>
+        <figure><img src="media/giannibuilding1_giannibuilding2_points.jpg" alt="gianni correspondences"><figcaption>Gianni</figcaption></figure>
+<pre class="mat">[[ 0.79576  -0.52442  1073.07064]
+ [ 0.44394   0.76706  -378.07159]
+ [-0.00001  -0.00003     1.0    ]]    mean error 4.51 px</pre>
+        <figure><img src="media/glassbuilding1_glassbuilding2_points.jpg" alt="glass correspondences"><figcaption>Glass</figcaption></figure>
+<pre class="mat">[[ 0.81266  -0.5138   1238.65463]
+ [ 0.51602   0.84794  -834.3558 ]
+ [-0.00001   0.00001     1.0    ]]    mean error 3.16 px</pre>
+      </div>
+    </section>
+
+    <!-- ================= A.3 ================= -->
+    <section class="part" id="warp">
+      <h2><span class="part-label">A.3</span>Warping and rectification</h2>
+      <p>
+        Both warps use inverse warping. For each output pixel I apply <i>H</i><sup>&minus;1</sup> to find where it
+        samples the source. Nearest neighbor rounds to the closest pixel, and bilinear takes a weighted average of the
+        four surrounding pixels. To rectify, I clicked the four corners of a window or a row of windows and mapped them
+        to a rectangle.
+      </p>
+
+      <div class="grid2">
+        <figure><img src="media/sidewaysgateway.jpg" alt="gateway window original"><figcaption>Original</figcaption></figure>
+        <figure><img src="media/sidewaysgateway_points.jpg" alt="gateway window corners"><figcaption>Clicked corners</figcaption></figure>
+        <figure><img src="media/sidewaysgateway_nn.jpg" alt="gateway window nearest neighbor"><figcaption>Nearest neighbor (0.03 s)</figcaption></figure>
+        <figure><img src="media/sidewaysgateway_bil.jpg" alt="gateway window bilinear"><figcaption>Bilinear (0.11 s)</figcaption></figure>
+      </div>
+
+      <div class="grid2">
+        <figure><img src="media/sidewaysglass.jpg" alt="glass building original"><figcaption>Original</figcaption></figure>
+        <figure><img src="media/sidewaysglass_points.jpg" alt="glass building corners"><figcaption>Clicked corners</figcaption></figure>
+        <figure><img src="media/sidewaysglass_nn.jpg" alt="glass building nearest neighbor"><figcaption>Nearest neighbor (0.08 s)</figcaption></figure>
+        <figure><img src="media/sidewaysglass_bil.jpg" alt="glass building bilinear"><figcaption>Bilinear (0.29 s)</figcaption></figure>
+      </div>
+
+      <p>
+        The two look close at this size. Nearest neighbor is about 3&times; faster but leaves jagged stair-steps on
+        diagonal edges when zoomed in, while bilinear is smoother at the cost of slightly softer detail.
+      </p>
+    </section>
+
+    <!-- ================= A.4 ================= -->
+    <section class="part" id="mosaics">
+      <h2><span class="part-label">A.4</span>Blending into mosaics</h2>
+      <p>
+        For each pair I left image 2 unwarped, warped image 1 into its frame with the recovered <i>H</i>, and placed both on a
+        canvas sized from the transformed corners. Each image gets an alpha of 1 at its center that falls linearly to 0 at
+        its edges, and the mosaic is the alpha-weighted average of the two, so neither image overwrites the other at the seam.
+      </p>
+
+      <div class="row-label">Gateway</div>
+      <div class="grid2">
+        <figure><img src="media/gateway1.jpg" alt="gateway image 1"></figure>
+        <figure><img src="media/gateway2.jpg" alt="gateway image 2"></figure>
+      </div>
+      <figure><img src="media/gateway_mosaic.jpg" alt="gateway mosaic"><figcaption>Gateway mosaic</figcaption></figure>
+
+      <div class="row-label">Gianni</div>
+      <div class="grid2">
+        <figure><img src="media/gianni1.jpg" alt="gianni image 1"></figure>
+        <figure><img src="media/gianni2.jpg" alt="gianni image 2"></figure>
+      </div>
+      <figure><img src="media/gianni_mosaic.jpg" alt="gianni mosaic"><figcaption>Gianni mosaic</figcaption></figure>
+
+      <div class="row-label">Glass</div>
+      <div class="grid2">
+        <figure><img src="media/glass1.jpg" alt="glass image 1"></figure>
+        <figure><img src="media/glass2.jpg" alt="glass image 2"></figure>
+      </div>
+      <figure><img src="media/glass_mosaic.jpg" alt="glass mosaic"><figcaption>Glass mosaic</figcaption></figure>
+    </section>
+
+    <footer class="page-footer">
+      &copy; 2026 Beni Michel
+    </footer>
+  </div>
+</body>
+</html>
