@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proj4 Part B: Feature Matching for Autostitching</title>
+  <link rel="stylesheet" href="../style.css">
+  <style>
+    /* proj4b-only additions */
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+    .grid2 figure { margin: 0; }
+    .row-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      font-weight: 600;
+      margin: 24px 0 2px;
+    }
+    table.stats {
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 0.92rem;
+    }
+    table.stats th, table.stats td {
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      text-align: right;
+    }
+    table.stats th:first-child, table.stats td:first-child { text-align: left; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="crumbs"><a href="../index.html">&larr; Portfolio</a> &middot; <a href="../proj4/index.html">Part A</a></nav>
+
+    <header class="page-header">
+      <div class="eyebrow">CS180 · Programming Project #4</div>
+      <h1>Feature Matching for Autostitching</h1>
+    </header>
+
+    <p>
+      Part A needed hand-clicked correspondences. Here the points are found automatically, so a pair of photos goes straight to a mosaic.
+      The photos are new ones where I only turned the camera in place, because the descriptors below are not rotation invariant. The steps are shown on the library pair, and the mosaics for all three pairs are at the end.
+    </p>
+
+    <!-- ================= B.1 ================= -->
+    <section class="part" id="harris">
+      <h2><span class="part-label">B.1</span>Harris corners and ANMS</h2>
+      <p>
+        I used the Harris corner response with the harmonic mean, <i>det</i> / <i>trace</i>, and kept the local maxima in a 5&times;5 window that pass a threshold, skipping a border near the edge.
+        That gave 5062 corners for the first library image, which is too many and bunches up on textured areas like the grass.
+        Adaptive non-maximal suppression fixes that. Each corner gets a radius, the distance to the nearest corner that is clearly stronger (with a robustness factor of 0.9), and I kept the 500 corners with the largest radius.
+      </p>
+      <div class="grid2">
+        <figure><img src="media/library_harris.jpg" alt="harris corners"><figcaption>All Harris corners</figcaption></figure>
+        <figure><img src="media/library_anms.jpg" alt="harris corners after anms"><figcaption>After ANMS, 500 points</figcaption></figure>
+      </div>
+    </section>
+
+    <!-- ================= B.2 ================= -->
+    <section class="part" id="descriptors">
+      <h2><span class="part-label">B.2</span>Feature descriptors</h2>
+      <p>
+        For each corner I took a 40&times;40 window from a blurred copy of the image and sampled every 5th pixel to get an 8&times;8 patch.
+        Each patch is normalized to zero mean and unit variance, so the descriptor doesn't care about brightness or contrast changes between the two shots. Here are the first 12 descriptors from the first library image.
+      </p>
+      <figure><img src="media/library_descriptors.jpg" alt="feature descriptors"></figure>
+    </section>
+
+    <!-- ================= B.3 ================= -->
+    <section class="part" id="matching">
+      <h2><span class="part-label">B.3</span>Matching</h2>
+      <p>
+        Each descriptor is compared against all the descriptors in the other image. I only keep a match if the nearest neighbor is closer than 0.7 times the distance to the second nearest, which throws out ambiguous features such as the repeating windows.
+        166 matches survived for the library pair. Green lines below are the ones RANSAC later keeps and red lines are the ones it rejects.
+      </p>
+      <figure><img src="media/library_matches.jpg" alt="matches between the library images"></figure>
+    </section>
+
+    <!-- ================= B.4 ================= -->
+    <section class="part" id="ransac">
+      <h2><span class="part-label">B.4</span>RANSAC and mosaics</h2>
+      <p>
+        A few bad matches still get through the ratio test and they would wreck a least squares fit. So RANSAC picks 4 random matches, computes a homography, and counts how many of the other matches land within 4 pixels of where they should.
+        After 5000 tries I keep the largest set of inliers and recompute the homography from all of them. The mosaics then use the same warping and blending as Part A.
+      </p>
+      <table class="stats">
+        <tr><th></th><th>Harris corners</th><th>Matches</th><th>Inliers</th></tr>
+        <tr><td>Umbrella</td><td>1131 / 2237</td><td>181</td><td>155</td></tr>
+        <tr><td>Library</td><td>5062 / 5059</td><td>166</td><td>149</td></tr>
+        <tr><td>Glass</td><td>1132 / 993</td><td>101</td><td>69</td></tr>
+      </table>
+      <p>
+        Below, each pair has the mosaic from my hand-clicked points on the left and the automatic one on the right. They look almost identical.
+        If I push the corners of the second image through both homographies, they land 6, 31 and 19 pixels apart for umbrella, library and glass (in the half-size mosaics).
+        The glass pair has the fewest inliers because the vertical fins all look alike, but it still lines up well.
+      </p>
+
+      <div class="row-label">Umbrella</div>
+      <div class="grid2">
+        <figure><img src="media/umbrella_manual.png" alt="umbrella manual mosaic"><figcaption>Manual</figcaption></figure>
+        <figure><img src="media/umbrella_auto.png" alt="umbrella automatic mosaic"><figcaption>Automatic</figcaption></figure>
+      </div>
+
+      <div class="row-label">Library</div>
+      <div class="grid2">
+        <figure><img src="media/library_manual.png" alt="library manual mosaic"><figcaption>Manual</figcaption></figure>
+        <figure><img src="media/library_auto.png" alt="library automatic mosaic"><figcaption>Automatic</figcaption></figure>
+      </div>
+
+      <div class="row-label">Glass</div>
+      <div class="grid2">
+        <figure><img src="media/glass_manual.png" alt="glass manual mosaic"><figcaption>Manual</figcaption></figure>
+        <figure><img src="media/glass_auto.png" alt="glass automatic mosaic"><figcaption>Automatic</figcaption></figure>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      &copy; 2026 Beni Michel
+    </footer>
+  </div>
+</body>
+</html>
