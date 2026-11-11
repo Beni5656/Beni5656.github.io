@@ -29,3 +29,13 @@ proj3/*.ipynb
 proj3/all_results/
 proj3/partb_results/
 proj3/submission/
+
+# Proj4 code, photos and raw outputs stay local. Only the pages and media are published.
+proj4/*.py
+proj4/README.txt
+proj4/*.zip
+proj4b/*.py
+proj4b/*.zip
+proj4b/images/
+proj4b/points/
+proj4b/results/
